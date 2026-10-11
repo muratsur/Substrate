@@ -88,5 +88,15 @@ All four classes were recreated at the paths above via the editor MCP server
 (see `_tools/ue_mcp.py`) and verified in Play-in-Editor on L_SectorC:
 instance counts and FixtureID/RowOrder values match the map; growth timer,
 once-per-round advance, RoundManager.StartShift and the airlock pair work.
-Defaults (growth arrays/timings), fixture states, checklist/shift-close logic
-and persistence are still to do.
+Since added and verified in PIE:
+- BP_Fixture: `FixtureState` (0 nominal, 1 degraded, 2 absent -> hidden, no
+  collision), `LogResult` (0 unlogged, 1 PASS, 2 FLAG), `LogFixture`,
+  `ResetLog`, `IsLoggedCorrectly` (nominal expects PASS, degraded/absent FLAG).
+- BP_RoundManager: touching the route-end trigger runs `TryCloseShift`; if every
+  fixture is logged correctly the next round starts (`StartShift`: round + 1,
+  logs reset, `Growth`-tagged nodes re-armed), otherwise the shift stays open
+  and growth is re-armed (the exposure penalty from DESIGN.md section 3).
+
+Still to do: growth defaults (arrays/timings), a terminal UI / interaction that
+calls `LogFixture`, degraded-state visuals, Sector D ending, persistence.
+Note: `GrowthNode_Transit` has no `Growth` tag in the map, so it is not re-armed.
