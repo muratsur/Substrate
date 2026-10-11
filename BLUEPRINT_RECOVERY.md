@@ -97,6 +97,12 @@ Since added and verified in PIE:
   logs reset, `Growth`-tagged nodes re-armed), otherwise the shift stays open
   and growth is re-armed (the exposure penalty from DESIGN.md section 3).
 
-Still to do: growth defaults (arrays/timings), a terminal UI / interaction that
-calls `LogFixture`, degraded-state visuals, Sector D ending, persistence.
+- Interaction: BP_RoundManager enables input for the player; **E** logs the
+  fixture being looked at as PASS, **Q** as FLAG (`LogLookedAtFixture`: nearest
+  fixture within 400 units and ~37 degrees of the camera, via
+  `BP_Fixture.ViewScore`). Aim picking verified in PIE; the physical key press
+  itself has not been tried in a real play session.
+
+Still to do: growth defaults (arrays/timings), a terminal UI, degraded-state
+visuals, Sector D ending, persistence.
 Note: `GrowthNode_Transit` has no `Growth` tag in the map, so it is not re-armed.
