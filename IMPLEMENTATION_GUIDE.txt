@@ -1,0 +1,702 @@
+================================================================================
+SUBSTRATE - IMPLEMENTATION GUIDE
+Exact steps to rebuild / extend the game, and what to use for each step.
+Written 2026-10-11 from the live project state (Unreal Engine 5.8, map L_SectorC).
+================================================================================
+
+HOW TO READ THIS FILE
+  - Everything here describes what EXISTS in the project right now, plus the
+    steps to recreate it by hand in the Unreal editor.
+  - "Blueprint terms" means node names as you see them in the Blueprint editor
+    (right-click in a graph and type the node name).
+  - Sections 1-3 are setup. 4-9 are the build steps. 10 is testing. 11 is git.
+    12 is what is still to do. 13 is a list of known problems.
+
+CONTENTS
+  1. What the game is
+  2. What to use (software, accounts, plugins)
+  3. Project setup (engine version, config, folders)
+  4. Content you need on disk (kits, template, folders)
+  5. Blueprints - exact build, one by one
+       5.1 BP_Fixture
+       5.2 BP_GrowthNode
+       5.3 BP_RoundManager
+       5.4 BP_Airlock
+       5.5 BP_CanalRescue
+  6. The level L_SectorC - what is placed, with exact values
+  7. Lighting and post-process - exact values
+  8. Materials (the 8 MI_* instances)
+  9. Audio (placeholders) and input
+ 10. How to test every feature, step by step
+ 11. Git workflow and the mistakes to avoid
+ 12. What is still to build (with specs)
+ 13. Known problems
+
+
+================================================================================
+1. WHAT THE GAME IS
+================================================================================
+Single-player atmospheric horror, PC (Steam), Unreal Engine 5.8.
+You are a maintenance technician. Each "shift" you walk a fixed route, look at
+a fixed list of fixtures, log each one PASS or FLAG, and close the shift.
+Biomass ("growth") advances only while you are not looking at it, at most once
+per round. There is no monster: the level geometry is the antagonist.
+Failure is not a death screen - it is the shift not closing, so you walk the
+route again while the growth advances.
+(Full design: DESIGN.md. Test notes: TEST_ME.md.)
+
+The core loop implemented so far:
+   start in the sewer (Sector C)
+   -> look at a fixture, press E (PASS) or Q (FLAG)
+   -> log all five sewer fixtures
+   -> the dock airlock unlocks and teleports you to the Transit corridor
+   -> log the three Transit fixtures
+   -> the Transit airlock unlocks and sends you back
+   -> walk into the round-manager trigger to try to close the shift
+   -> all correct: next round (growth re-armed), otherwise shift stays open.
+
+
+================================================================================
+2. WHAT TO USE
+================================================================================
+REQUIRED
+  Unreal Engine 5.8      Install from the Epic Games Launcher (Library -> Engine
+                         Versions -> "+"). The project file says
+                         EngineAssociation 5.8.
+  Windows 10/11 + DX12   Project uses DX12 / SM6, Lumen, virtual shadow maps,
+                         ray tracing enabled (see DefaultEngine.ini).
+  Visual Studio          NOT needed. The project is Blueprint-only (no Source
+                         folder), so it opens without compiling C++.
+  Git (+ Git for Windows) Version control. Remote:
+                         https://github.com/muratsur/Substrate
+  Epic Games Launcher    To download the Fab content packs (section 4).
+  A Fab / Epic account   The art kits are from the Humble Massive Unreal Engine
+                         Bundle (Fab Professional licenses, Laya Design).
+
+OPTIONAL (what was used to build this with automation)
+  Claude Code + the Unreal "ModelContextProtocol" plugin (enabled in the
+  .uproject, server auto-starts on http://127.0.0.1:8000/mcp). Everything in this
+  guide can be done by hand in the editor without it.
+  Python 3 (any recent) - only for the helper scripts in _tools/.
+
+UNREAL PLUGINS ENABLED IN Substrate.uproject
+  ModelingToolsEditorMode (Editor only)
+  GameplayStateTree       (DISABLED)
+  ModelContextProtocol    (Editor only)  - the MCP server, optional
+  AllToolsets             (Editor only)  - optional
+  Enhanced Input is used by the First Person template (IA_* / IMC_Default).
+
+ART PACKS (all Laya Design, from the bundle)
+  Sewers Modular Kit        -> /Game/Modular_Sewer_Kit      (Sector C, 58 assets used)
+  Sci-Fi Snow Station       -> /Game/Ice_Station            (Sector B / Transit)
+  ALIEN BIOMASS             -> /Game/Alien_Biomass          (growth meshes)
+  Science Fiction Hideout   -> /Game/Scifi_Hideout          (Sector A, planned)
+  Asteroid Base             -> /Game/Asteroid_base          (Sector E, planned)
+  Desert Temple Kit         -> /Game/Desert_Temple_Kit      (1 reference only)
+  FIRST PERSON TEMPLATE     -> Content/FirstPerson, Input, Characters,
+                               LevelPrototyping (stock UE template)
+
+
+================================================================================
+3. PROJECT SETUP
+================================================================================
+3.1  Clone / open
+     git clone https://github.com/muratsur/Substrate.git
+     Double-click Substrate.uproject. Choose UE 5.8 if asked. First open compiles
+     shaders - expect many minutes.
+
+3.2  Config that must be set (already in the repo, listed so you can verify)
+     Config/DefaultEngine.ini
+       [/Script/EngineSettings.GameMapsSettings]
+       EditorStartupMap=/Game/Substrate/Maps/L_SectorC.L_SectorC
+       GameDefaultMap=/Game/Substrate/Maps/L_SectorC.L_SectorC
+       GlobalDefaultGameMode=/Game/FirstPerson/Blueprints/BP_FirstPersonGameMode.BP_FirstPersonGameMode_C
+       [/Script/Engine.RendererSettings]
+       r.Substrate=True            (Substrate material system)
+       r.DynamicGlobalIlluminationMethod=1   (Lumen GI)
+       r.ReflectionMethod=1                  (Lumen reflections)
+       r.Shadow.Virtual.Enable=1             (virtual shadow maps)
+       r.RayTracing=True
+       r.AllowStaticLighting=False           (everything is fully dynamic)
+       r.DefaultFeature.AutoExposure.ExtendDefaultLuminanceRange=True
+         ^ IMPORTANT: with this on, exposure Min/Max Brightness are in EV100-style
+           units. The level's locked value 0.55 is a VERY dark-adapted setting.
+     Config/DefaultEditorPerProjectUserSettings.ini
+       [/Script/ModelContextProtocolEngine.ModelContextProtocolSettings]
+       bAutoStartServer=True
+       ServerPortNumber=8000
+       (Only one editor instance can hold port 8000.)
+     .gitignore: Binaries, DerivedDataCache, Intermediate, Saved, .vs are ignored.
+       Content/* is ignored EXCEPT Content/Substrate, Input, FirstPerson,
+       Characters, LevelPrototyping, __ExternalActors__, __ExternalObjects__.
+       (Fab kit folders are NOT in git - you re-download them.)
+       /Content/Substrate/Audio/*.wav is ignored (see section 9).
+
+3.3  Folder layout you should end up with
+     Content/
+       Substrate/
+         Core/        BP_Fixture, BP_GrowthNode, BP_RoundManager, BP_Airlock,
+                      BP_CanalRescue
+         Maps/        L_SectorC
+         Materials/   MI_SectorD_*, MI_Transit*_Dim  (8 assets)
+         Audio/       AMB_SewerRoomTone_Loop, AMB_WaterDrips_Loop
+         UI/          (empty - terminal UI not built yet)
+       FirstPerson/   template: game mode, player controller, character BP
+       Input/         IMC_Default, IA_Move, IA_Look, IA_MouseLook, IA_Jump
+       Characters/    template mannequins (NOT in git by choice - 126 MB)
+       LevelPrototyping/
+       Modular_Sewer_Kit/  Ice_Station/  Alien_Biomass/ ...  (Fab, not in git)
+     AudioSource/    raw .wav files (footsteps, wade loop)
+
+
+================================================================================
+4. CONTENT YOU NEED ON DISK
+================================================================================
+4.1  First Person template content (if Content/Characters etc. are missing)
+     In the editor: Add (Content Drawer) -> Add Feature or Content Pack ->
+     "First Person" under Blueprint -> Add to project. Or copy from any UE 5.x
+     First Person template project's Content folder: Characters, FirstPerson,
+     Input, LevelPrototyping, __ExternalActors__, __ExternalObjects__.
+     Do NOT overwrite Content/FirstPerson/Blueprints/BP_FirstPersonCharacter
+     (the project version was recovered; keep it).
+
+4.2  Fab kits
+     1. Open Epic Games Launcher -> Fab Library (or editor Content Drawer -> Fab).
+     2. Find each pack in section 2 -> "Add to Project" -> project: Substrate.
+     3. Verify folder names are EXACTLY: Modular_Sewer_Kit, Ice_Station,
+        Alien_Biomass, Scifi_Hideout, Asteroid_base. L_SectorC finds assets by
+        path; a different folder name leaves them broken.
+     4. Open L_SectorC. Window -> Message Log -> Load Errors should be 0.
+
+4.3  What the map expects from each kit (verified from the map file)
+     Modular_Sewer_Kit  58 packages (walls, pipes, lamps, water BPs: BP_Light_01,
+                        BP_Light_02, BP_water, BP_water_stream, BP_sky ...)
+     Alien_Biomass      SM_alien_organism and _02 .. _09 (growth stages)
+     Ice_Station        SM_path, SM_module_round_01, MI_trim_01B, MI_trim_02_snow,
+                        MI_trim_2, MI_trim_01_interior (parents of section 8)
+     Desert_Temple_Kit  /Levels/L_sewer_showcase_map (reference only)
+
+
+================================================================================
+5. BLUEPRINTS - EXACT BUILD
+================================================================================
+General rules used everywhere:
+  - All four gameplay Blueprints have parent class "Actor".
+  - Create them in /Game/Substrate/Core/ with EXACTLY these names. The map
+    stores the class paths (/Game/Substrate/Core/BP_Fixture etc.); a different
+    name or folder breaks every placed instance.
+  - "Get All Actors Of Class" + "For Each Loop" + "Cast To BP_Fixture" is the
+    pattern used. Keep loop bodies simple (call a small function on the cast
+    object) - it is easier to read and debug.
+  - Compile (F7) after each function.
+
+--------------------------------------------------------------------------------
+5.1  BP_Fixture   (a checklist item the player looks at)
+--------------------------------------------------------------------------------
+Parent: Actor.
+Components: StaticMeshComponent named "StaticMeshComponent" as the ROOT
+  (drag it onto DefaultSceneRoot to replace it).
+Variables (all Instance Editable):
+  FixtureID    Name       checklist label, e.g. "C-01 INLET VALVE"
+  RowOrder     Integer    0-based checklist row
+  FixtureState Integer    0 nominal, 1 degraded, 2 absent
+  LogResult    Integer    0 unlogged, 1 PASS, 2 FLAG
+
+Functions:
+  ApplyFixtureState (Input: NewState Integer)
+    Set FixtureState = NewState
+    Set Actor Hidden In Game (Target Self, New Hidden = NewState == 2)
+    Set Actor Enable Collision (Target Self, New Actor Enable Collision =
+        NewState != 2)
+  LogFixture (Input: Result Integer)
+    Set LogResult = Result
+    Print String( ToString(FixtureID) + (Result == 1 ? ": PASS" : ": FLAG"),
+        Duration 3.0 )      <- on-screen feedback; also written to the log
+                               category LogBlueprintUserMessages
+  ResetLog
+    Set LogResult = 0
+  IsLoggedCorrectly (Output: Correct Boolean)
+    Expected = Select Int (A: 1, B: 2, Pick A = FixtureState == 0)
+    Return Correct = (LogResult == Expected)
+    (nominal fixture must be PASS; degraded or absent must be FLAG)
+  ViewScore (Inputs: EyeLocation Vector, ViewForward Vector; Output: Score Float)
+    Delta = GetActorLocation(Self) - EyeLocation
+    Return Score = Select Float( A: VectorLength(Delta), B: 9999.0,
+        Pick A = DotProduct(Normalize(Delta), ViewForward) > 0.8 )
+    (distance if inside a ~37 degree cone of the view direction, else huge)
+  DistanceFrom (Input: Point Vector; Output: Dist Float)
+    Return Dist = Distance(GetActorLocation(Self), Point)
+  HasIdPrefix (Input: Prefix String; Output: Matches Boolean)
+    Return Matches = StartsWith( ToString(FixtureID), Prefix )
+    (kept for reference - the airlock gate now uses InRowRange)
+  InRowRange (Inputs: MinRow, MaxRow Integer; Output: InRange Boolean)
+    Return InRange = (RowOrder >= MinRow) AND (RowOrder <= MaxRow)
+
+Event Graph:
+  Event BeginPlay -> ApplyFixtureState(NewState = FixtureState)
+  (applies the placed state; set FixtureState on the placed instance to make an
+   anomaly.)
+
+--------------------------------------------------------------------------------
+5.2  BP_GrowthNode   (biomass that advances only while unobserved)
+--------------------------------------------------------------------------------
+Parent: Actor.
+Components: StaticMeshComponent named "StaticMeshComponent" as ROOT.
+Variables:
+  GrowthStages      Array of Static Mesh   (Instance Editable)
+  GrowthScales      Array of Float         (Instance Editable)
+  SecondsToAdvance  Float                  (Instance Editable)
+  EligibleThisRound Boolean   latch: may advance this round
+  StageIndex        Integer   number of advances done (index into the arrays)
+  UnobservedTime    Float     seconds continuously unobserved
+Class defaults currently set:
+  SecondsToAdvance = 4
+  GrowthScales     = 0.1, 0.25, 0.4, 0.55, 0.75, 1.0   (6 values, 1 per stage)
+  GrowthStages     = SM_alien_organism_02, _01, _03, _04, _05, _06
+
+Event Graph:
+  Event BeginPlay
+    Set EligibleThisRound = true
+    Set Timer by Function Name (Object: Self, Function Name: "CheckObserved",
+        Time: 0.2, Looping: true)
+
+Function CheckObserved:
+  Branch (EligibleThisRound)
+    true:
+      Branch (Was Actor Recently Rendered(Target Self, Tolerance 0.2))
+        true  (being looked at): Set UnobservedTime = 0.0
+        false (unobserved):
+          Set UnobservedTime = UnobservedTime + 0.2
+          Branch (UnobservedTime >= SecondsToAdvance)
+            true:
+              Branch (Is Valid Index(GrowthStages, StageIndex))
+                true:
+                  Set Static Mesh (Target StaticMeshComponent,
+                      New Mesh = Get(GrowthStages, StageIndex))
+                  Branch (Is Valid Index(GrowthScales, StageIndex))
+                    true: Set Actor Scale 3D (Self,
+                        X=Y=Z=Get(GrowthScales, StageIndex))
+                  Set StageIndex = StageIndex + 1
+                  Set EligibleThisRound = false     <- the once-per-round latch
+                  Set UnobservedTime = 0.0
+  IMPORTANT: the IsValidIndex check on GrowthScales matters - "Get" on an
+  out-of-range array index returns 0 and would scale the growth to nothing.
+Why "once per round": see DESIGN.md section 4 (unlatched growth runs its whole
+ladder in ~15 s and becomes a timer to wait out).
+
+--------------------------------------------------------------------------------
+5.3  BP_RoundManager   (round counter, shift close, player logging input)
+--------------------------------------------------------------------------------
+Parent: Actor.
+Components:
+  Box Collision named "CollisionComponent" as ROOT (default extent 32,32,32)
+  Billboard named "SpriteComponent"
+Variables:
+  RouteStart   Vector    (Instance Editable)  placed value (0, 1400, 360)
+  CurrentRound Integer   starts 0
+  ShiftOpen    Boolean
+  RequiredRowMax Integer (Instance Editable) highest RowOrder the shift needs;
+                         default 7 (row 8 = C-06 is Sector D, not required yet)
+  AllCorrect   Boolean   scratch for TryCloseShift
+  BestDist     Float     scratch for LogLookedAtFixture
+  BestFixture  Object reference: BP_Fixture   scratch
+
+Functions:
+  ArmGrowth
+    Get All Actors With Tag("Growth") -> For Each
+      Cast To BP_GrowthNode -> Set EligibleThisRound = true
+  StartShift
+    Set CurrentRound = CurrentRound + 1
+    Set ShiftOpen = true
+    Get All Actors Of Class(BP_Fixture) -> For Each -> Cast To BP_Fixture ->
+        ResetLog
+    Call ArmGrowth
+  TryCloseShift
+    Branch (ShiftOpen)
+      Set AllCorrect = true
+      Get All Actors Of Class(BP_Fixture) -> For Each -> Cast To BP_Fixture:
+          inPlay = InRowRange(fixture, 0, RequiredRowMax)
+          correct = IsLoggedCorrectly(fixture)
+          if inPlay AND NOT correct: Set AllCorrect = false
+      Branch (AllCorrect)
+        true:  Call StartShift     (next round)
+        false: Call ArmGrowth      (shift stays open; growth re-armed =
+                                    "failure means more exposure")
+  LogLookedAtFixture (Input: Result Integer)
+    Set BestDist = 400.0
+    Get All Actors Of Class(BP_Fixture) -> For Each -> Cast To BP_Fixture:
+      Score = ViewScore(fixture, EyeLocation = GetCameraLocation(
+                  GetPlayerCameraManager(0)),
+              ViewForward = GetForwardVector(GetCameraRotation(
+                  GetPlayerCameraManager(0))))
+      Branch (Score < BestDist): Set BestDist = Score; Set BestFixture = fixture
+    Branch (BestDist < 400.0):
+        true:  BestFixture -> LogFixture(Result)
+        false: Print String("Nothing in range - look at a fixture, get within
+                4 m", Duration 2.0)
+    (= nearest fixture within 400 units and ~37 degrees of the camera)
+
+Event Graph:
+  Event BeginPlay
+    Call StartShift
+    Enable Input (Player Controller = Get Player Controller(0))
+  Event ActorBeginOverlap (Other Actor)
+    Cast To Character (Object = Other Actor) -> Call TryCloseShift
+  Input Key E  -> Pressed -> LogLookedAtFixture(Result = 1)    (PASS)
+  Input Key Q  -> Pressed -> LogLookedAtFixture(Result = 2)    (FLAG)
+  (Key nodes: right-click the graph, type "E" under Input -> Keyboard Events.)
+  If the game uses Enhanced Input for these later, replace the key nodes with
+  new Input Actions IA_Pass / IA_Flag and map E / Q in IMC_Default.
+
+--------------------------------------------------------------------------------
+5.4  BP_Airlock   (paired teleporters, locked by checklist progress)
+--------------------------------------------------------------------------------
+Parent: Actor.
+Components:
+  Box Collision named "CollisionComp" as ROOT (extent 32,32,32 - make it larger
+      if you want it easier to enter)
+  Billboard named "Sprite"
+Variables:
+  Disarmed     Boolean   true on the arrival airlock so you are not bounced back
+  GateRowMin   Integer   (Instance Editable)  first checklist row required
+  GateRowMax   Integer   (Instance Editable)  last checklist row required
+  GateOK       Boolean   scratch
+  Pending      Integer   scratch: how many required fixtures are not yet correct
+  NearestDist  Float     scratch
+  NearestLoc   Vector    scratch
+
+Functions:
+  GateOpen
+    Set GateOK = true; Set Pending = 0
+    Get All Actors Of Class(BP_Fixture) -> For Each -> Cast To BP_Fixture:
+      inRange = InRowRange(fixture, GateRowMin, GateRowMax)
+      correct = IsLoggedCorrectly(fixture)
+      Branch (inRange AND NOT correct): Set GateOK = false; Pending = Pending + 1
+  Disarm
+    Set Disarmed = true
+  FaceNearestFixture (Input: Traveler Actor)
+    Set NearestDist = 1000000.0
+    Here = GetActorLocation(Self)
+    For Each BP_Fixture: d = DistanceFrom(fixture, Here);
+        if d < NearestDist: NearestDist = d; NearestLoc = fixture location
+    Cast To Pawn (Traveler) -> Pawn -> Set Control Rotation(
+        Controller = GetController(pawn),
+        New Rotation = MakeRotator(Roll 0, Pitch 0,
+                       Yaw = FindLookAtRotation(Here, NearestLoc).Yaw))
+    (without this the player arrives facing the wrong way and sees only sky)
+  Transit (Input: Traveler Actor)
+    Get All Actors Of Class(BP_Airlock) -> For Each element:
+      Branch (element != Self):
+        Cast To BP_Airlock (element)
+        Call Disarm on it
+        Set Actor Location (Traveler, element location)
+        Call FaceNearestFixture(Traveler) on the cast object
+
+Event Graph:
+  Event ActorBeginOverlap (Other Actor)
+    Cast To Character (Other Actor)
+    Branch (NOT Disarmed)
+      Call GateOpen
+      Branch (GateOK)
+        true:  Call Transit(Traveler = Other Actor)
+        false: Print String("Airlock locked - log the fixtures on this side
+               first (E = PASS, Q = FLAG)", Duration 4.0)
+  Event ActorEndOverlap
+    Set Disarmed = false
+
+Placed values (see section 6): dock airlock rows 0-4, Transit airlock rows 5-7.
+
+--------------------------------------------------------------------------------
+5.5  BP_CanalRescue   (recovered, not rebuilt)
+--------------------------------------------------------------------------------
+Parent: TriggerBox. A catch volume under the canal.
+  Event ActorBeginOverlap(Other Actor):
+    Branch (Other Actor == Get Player Pawn(0))
+      Set Actor Location(Other Actor, (0, 1400, 400), Sweep false, Teleport true)
+Two instances in the map: (-1000, 5000, -160) and (-300, 9900, 170).
+It sends a player who falls in the canal back to the start.
+
+
+================================================================================
+6. THE LEVEL L_SectorC - WHAT IS PLACED
+================================================================================
+Map: /Game/Substrate/Maps/L_SectorC. World Partition is OFF. ~3,900 actors.
+Most are StaticMeshActors from the kits (kit geometry); the gameplay actors:
+
+PlayerStart_0         (0, 1400, 360), yaw 90 (looks toward +Y, the sewer)
+
+BP_Fixture instances (set FixtureID and RowOrder on each):
+  Label        FixtureID                RowOrder  Tag       Location (X, Y, Z)
+  Fixture_C1   C-01 INLET VALVE         0         -         1469, 4342, 430
+  Fixture_C2   C-02 FILTRATION SEAL     1         -         3060, 6170, 430
+  Fixture_C3   C-03 PRESSURE GAUGE      2         -         -2480, 7212, 420
+  Fixture_C4   C-04 OVERFLOW LAMP       3         -         -1516, 8349, 420
+  Fixture_C5   C-05 OUTFALL GRATE       4         -         -2543, 10200, 430
+  Fix_B01      B-01 COOLANT PUMP        5         FixtureB  8560, 2500, 460
+  Fix_B02      B-02 HEAT EXCHANGER      6         FixtureB  8560, 3250, 460
+  Fix_B03      B-03 CONDENSER COIL      7         FixtureB  8560, 4100, 460
+  Fix_D06      C-06 RELIEF VALVE        8         FixtureD  -660, -6230, 455
+  FixtureState = 0 on all. C-06 is the phantom row / demo ending (Sector D).
+
+BP_GrowthNode instances:
+  Growth_Early        tag "Growth"   2200, 5200, 290
+  Growth_Late         tag "Growth"   -2100, 7800, 283
+  GrowthNode_Transit  tag "Growth"   8560, 3600, 315   (tag added 2026-10-12)
+  (Only tagged nodes are re-armed by ArmGrowth.)
+
+BP_RoundManager (1): label RouteEnd_ShiftTrigger, tag "RoundManager",
+  location (0, 1260, 420), RouteStart (0, 1400, 360).
+
+BP_Airlock (2):
+  Airlock_DockToTransit  (300, 1400, 400)    GateRowMin 0, GateRowMax 4
+  Airlock_TransitToDock  (8560, 4520, 420)   GateRowMin 5, GateRowMax 7
+  Companion lights: AirlockLight_Dock, AirlockLight_Transit (point lights).
+  Row 8 (C-06) is deliberately in neither gate.
+
+Transit corridor (the arrival side): SM_path pieces at x=8460, y from 2414 to
+  4484 (about every 414 units); SM_module_round_01 at x=9000, y 2000/2838/3676.
+  Fixtures B-01..B-03 lie along x=8560. Player arrives at the y=4520 end and
+  looks toward -Y (that is what FaceNearestFixture fixes).
+
+BP_CanalRescue (2): see 5.5.
+BlockingVolume at (8562, 3260, 280) with a Cube mesh at (8562, 3260, 270).
+Practical lights in Transit: PointLight_1..3 at (8560, 2500/3250/4100, 700),
+  900 cd, colour (0.55, 0.75, 1.0), attenuation 900; PointLight_5 at the
+  airlock (8560, 4520, 650), 600 cd.
+
+
+================================================================================
+7. LIGHTING AND POST-PROCESS - EXACT VALUES
+================================================================================
+Goal (DESIGN.md section 8): "dark but legible" - crushed blacks in negative
+space, every checklist fixture sitting in a pool of motivated light.
+
+DirectionalLight   Intensity 0.5   Colour (0.62, 0.78, 1.0)
+SkyLight           Intensity 0.45
+ExponentialHeightFog (ExponentialHeightFog_1)
+                   FogDensity 0.28
+                   FogInscatteringLuminance (0.011, 0.017, 0.021)
+                   VolumetricFog ON, Albedo (0.42, 0.48, 0.55),
+                   ExtinctionScale 1.1, HeightFalloff 0.673
+PostProcessVolume_1  (Unbound = true, Priority 0)   <- the main grade
+                   Auto Exposure Method: Histogram
+                   Min Brightness 0.55, Max Brightness 0.55   (LOCKED)
+                   Exposure Bias -1.5   (was +1; lowered so it is not white)
+                   Color Saturation 0.8, Vignette 0.55, Bloom 0.1
+PostProcessVolume_0  (bounded, Priority 10, at (-440, -8600, 400) = Sector D)
+                   Exposure Bias -1.6, Saturation (0.6, 0.55, 0.55),
+                   Vignette 0.7, Bloom 0.675, same locked 0.55 brightness
+PostProcessVolume_3  (bounded, at (-802, 807, 132)) bloom/colour tweaks only
+
+HOW EXPOSURE WORKS HERE (read this before touching lights)
+  Because the exposure is locked to 0.55, lights must be small. A 900 cd point
+  light 4 m above a surface is far too strong at that exposure unless the bias is
+  pulled down. If a scene looks white:
+    1. Lower PostProcessVolume_1 > Exposure Bias (try -1.5, then -2.5).
+    2. Or lower light intensities.
+    3. Surface colours matter least (see section 8).
+  Always change one thing at a time and press Play to judge - the editor
+  viewport and PIE can look different.
+
+
+================================================================================
+8. MATERIALS - THE 8 MI_* INSTANCES
+================================================================================
+The map overrides materials on exactly two Snow Station meshes:
+  SM_path               slot 0 "Trim_1" -> Path      slot 1 "Trim_2" -> PathSnow
+  SM_module_round_01    slot 0 "Trim_2" -> Trim2     slot 1 "Trim_1" -> Trim
+
+Create 8 Material Instance Constants in /Game/Substrate/Materials (right-click ->
+Material -> Material Instance, name EXACTLY as below, set Parent):
+
+  Name                      Parent (in /Game/Ice_Station/Materials)
+  MI_TransitPath_Dim        MI_trim_01B
+  MI_TransitPathSnow_Dim    MI_trim_02_snow
+  MI_TransitTrim2_Dim       MI_trim_2
+  MI_TransitTrim_Dim        MI_trim_01_interior
+  MI_SectorD_Path           MI_trim_01B
+  MI_SectorD_PathSnow       MI_trim_02_snow
+  MI_SectorD_Trim2          MI_trim_2
+  MI_SectorD_Trim           MI_trim_01_interior
+
+Current parameter overrides:
+  The four *_Dim: Vector parameter "Base Color" = (0.12, 0.14, 0.17, 1.0)
+  The four SectorD: none (identical to the parent; retint for Sector D)
+These are RECONSTRUCTIONS - the originals were lost. Tune by eye.
+
+
+================================================================================
+9. AUDIO AND INPUT
+================================================================================
+9.1  Audio (placeholders)
+     AMB_SewerRoomTone_Loop and AMB_WaterDrips_Loop in /Game/Substrate/Audio are
+     both imports of AudioSource/AMB_WaterWade_Loop.wav (57.9 s), Looping = true.
+     To (re)create: copy the .wav into Content/Substrate/Audio/ under the target
+     name; the editor offers "changes to source content files detected - import?"
+     -> Import. Keep the .wav next to the asset or the editor will offer to delete
+     the asset (Auto Reimport "Delete" behaviour). The .wav copies are git-ignored.
+     Real audio still needed: distinct room tone per sector, footsteps with
+     surface variation, terminal clicks/chime/error (DESIGN.md section 9).
+     Footstep sources exist in AudioSource/ (FS_River_*, FS_Sewer_*,
+     FS_WetConcrete_*), not yet imported or wired.
+
+9.2  Input
+     Movement/look/jump: Enhanced Input assets from the First Person template
+       Content/Input/IMC_Default, IA_Move, IA_Look, IA_MouseLook, IA_Jump.
+     PASS / FLAG logging: raw keys E and Q handled in BP_RoundManager
+       (section 5.3). Gamepad: not implemented.
+
+
+================================================================================
+10. HOW TO TEST EVERY FEATURE (step by step)
+================================================================================
+Always: open L_SectorC, press Play (Alt+P). Shift+F1 frees the mouse.
+
+T1  Map loads clean
+    Window -> Message Log -> Load Errors = 0.
+
+T2  Spawn / look
+    You start at (0, 1400, 360) facing +Y in the sewer. It should be dark blue
+    and green, with your lights visible. If it is white: section 7.
+
+T3  Logging
+    Walk to a fixture (e.g. C-01 near (1469, 4342)). Look at it, within about
+    4 m, and press E. LogResult becomes 1. Q sets it to 2.
+    (No on-screen message yet - check by selecting the fixture in the Outliner
+     during Play and reading LogResult in Details. Adding a PrintString to
+     LogLookedAtFixture would show it live.)
+
+T4  Airlock lock
+    Walk into the dock airlock at (300, 1400, 400) before logging: nothing
+    happens except the blue "Airlock locked" on-screen message for 4 s.
+    Log all five sewer fixtures (rows 0-4) with E, then walk in: you teleport
+    to (8560, 4520, ...) and face down the Transit corridor.
+
+T5  Transit
+    Log B-01..B-03. Walk into the Transit airlock to return.
+
+T6  Shift close
+    Enter the round-manager trigger at (0, 1260, 420).
+      nothing logged / any wrong  -> CurrentRound stays 1, shift open.
+      all nine rows correct       -> CurrentRound 2, logs reset to 0, tagged
+                                     growth nodes re-armed.
+    Read CurrentRound in the Outliner Details during Play.
+    Rows above RequiredRowMax (7) are ignored, so C-06 (row 8, Sector D) does
+    not block the shift. Raise RequiredRowMax to 8 when Sector D exists.
+
+T7  Growth
+    Stay out of sight of a Growth node for 4 s: it swaps to the next mesh and
+    scale, then will not advance again until the next round.
+
+T8  Absence
+    Set a fixture's FixtureState = 2 on the placed instance, Play: it is hidden
+    and non-colliding. Log it FLAG (2) to count as correct.
+
+
+================================================================================
+11. GIT WORKFLOW AND THE MISTAKES TO AVOID
+================================================================================
+Branches: main is protected by habit - work on a branch, open a PR, merge on
+GitHub, then pull. Open PR: #2 (branch post-merge-fixes). PR #1 is merged.
+
+Commands (PowerShell, one at a time):
+  git status
+  git checkout -b my-branch
+  git add Content/Substrate/Core/BP_Fixture.uasset
+  git commit -m "message"
+  git push -u origin my-branch
+  (open the PR on GitHub, merge it there)
+  git checkout main
+  git pull origin main
+
+RULES (each one cost real time in this project)
+  1. CLOSE UNREAL before switching branches. Open assets are locked and git
+     fails to unlink them ("Unlink of file ... failed").
+  2. MERGE THE PR BEFORE checking out main. Files only on the branch are deleted
+     from disk when you switch.
+  3. NEVER click "Save All" or "Save Selected" on L_SectorC while it has load
+     errors or unexpected changes - saving strips broken references forever.
+     Use "Don't Save" on stray prompts (BP_CanalRescue just shows modified after
+     a recompile).
+  4. Save only the assets you changed (Content Browser -> right-click -> Save).
+  5. Binary .uasset/.umap files cannot be merged. Do not edit the same asset on
+     two branches.
+  6. Content/Characters is not tracked (126 MB). Restore from the template.
+  7. If Windows says "unable to unlink", move the stray files aside, do not
+     delete them.
+  8. A change made in the editor but not saved is LOST when you click
+     "Don't Save" - save the asset first if you want to keep it.
+
+
+================================================================================
+12. WHAT IS STILL TO BUILD (with specs)
+================================================================================
+Priority order (see DESIGN.md sections 5, 6, 10):
+
+12.1 ANOMALY DIRECTOR  (makes the game scary)
+     Today every fixture is nominal, so every round is trivially all-PASS.
+     BP_AnomalyDirector (Actor, one in the level), called from
+     BP_RoundManager.StartShift after ResetLog:
+       - Round 1: no anomalies.
+       - Round 2: exactly one small anomaly - set one random fixture's
+         FixtureState to 2 (absent) via ApplyFixtureState. (DESIGN.md: land the
+         first anomaly in round 2, a single dead bulb or missing lamp.)
+       - Rounds 3-7: 1-2 anomalies, types Absence, Growth, Light.
+       - Rounds 8-14: add Geometry, Checklist corruption, Repetition.
+       - 15+: route no longer resolves.
+     Data-driven later with DA_Anomaly (Primary Data Asset): TargetActor, Type
+     (enum), MinRound, SeverityWeight.
+     Test: after round 1 closes, in round 2 exactly one fixture is hidden and
+     the shift only closes when it is FLAGged.
+
+12.2 FEEDBACK
+     On-screen text for E/Q ("C-02 FILTRATION SEAL: PASS") - add a Print String
+     or a small widget in LogLookedAtFixture. Without it the player cannot tell
+     it worked.
+
+12.3 TERMINAL UI  (WBP_Terminal)
+     Diegetic handheld checklist rendered on a held mesh (Render Target +
+     Widget Component), listing the FixtureIDs by RowOrder with their status.
+     Build in Content/Substrate/UI. Data source: Get All Actors Of Class
+     (BP_Fixture) sorted by RowOrder.
+
+12.4 PERSISTENCE
+     Save Game object holding CurrentRound, per-growth-node StageIndex,
+     per-fixture FixtureState. Save in StartShift, load in BeginPlay.
+
+12.5 DEGRADED VISUALS (FixtureState 1)
+     Flicker / colour shift on the fixture's light. Needs your art direction.
+
+12.6 AUDIO  (highest risk per DESIGN.md)
+     MetaSounds for room tone per sector; wire footsteps by surface (Physical
+     Material); the terminal sounds; "room tone that stops" as an anomaly.
+
+12.7 SECTORS A, D, E, F
+     Only C (sewer) and B (Transit) exist. Kits: Scifi_Hideout (A),
+     Alien_Biomass (D), Asteroid_base (E), Crystal Cave (F, not yet imported).
+
+12.8 DEMO ENDING
+     Round 8 close unlocks Sector D; pressing E or Q on C-06 RELIEF VALVE ends
+     the demo (TEST_ME.md). A 15-minute fallback timer also ends it.
+
+12.9 STEAM
+     Store page, capsule art, Next Fest demo - see DESIGN.md section 12.
+
+
+================================================================================
+13. KNOWN PROBLEMS
+================================================================================
+  - Original BP graph logic and default values were lost; everything in section
+    5 is a reconstruction from DESIGN.md and the data stored in the map.
+  - Real key presses (E / Q) were verified by logic only, not through the
+    keyboard in an automated run. Confirm in Play.
+  - MI_SectorD_* are plain copies of the kit materials (Sector D tint unknown).
+  - AMB_* sounds are the same water loop (placeholders).
+  - The route-end trigger (0, 1260, 420) is 140 units behind the player spawn.
+  - The Dim material tint (0.12, 0.14, 0.17) was set without a visual check.
+  - Light intensities (up to 900 cd) are high for the locked 0.55 exposure; the
+    scene relies on Exposure Bias -1.5 on PostProcessVolume_1.
+
+================================================================================
+END OF GUIDE
+================================================================================
