@@ -1,0 +1,211 @@
+[
+ {
+  "name": "StaticMeshActor_85",
+  "mesh": "/Game/Modular_Sewer_Kit/Meshes/Modules/Floor/SM_floor_module.SM_floor_module",
+  "loc": {
+   "x": -10570,
+   "y": -269.99999491547,
+   "z": 104.688253594228
+  },
+  "rot": {
+   "pitch": 0,
+   "yaw": 0,
+   "roll": 0
+  },
+  "scale": {
+   "x": 1,
+   "y": 1,
+   "z": 1
+  }
+ },
+ {
+  "name": "StaticMeshActor_86",
+  "mesh": "/Game/Modular_Sewer_Kit/Meshes/Modules/Floor/SM_floor_module.SM_floor_module",
+  "loc": {
+   "x": -10570,
+   "y": 730.00000508453,
+   "z": 104.688253594228
+  },
+  "rot": {
+   "pitch": 0,
+   "yaw": 0,
+   "roll": 0
+  },
+  "scale": {
+   "x": 1,
+   "y": 1,
+   "z": 1
+  }
+ },
+ {
+  "name": "StaticMeshActor_16",
+  "mesh": "/Game/Modular_Sewer_Kit/Meshes/Modules/Walls/SM_module_high_wall_01.SM_module_high_wall_01",
+  "loc": {
+   "x": -10600,
+   "y": -90,
+   "z": 240
+  },
+  "rot": {
+   "pitch": 0,
+   "yaw": 0,
+   "roll": 0
+  },
+  "scale": {
+   "x": 1,
+   "y": 1,
+   "z": 1
+  }
+ },
+ {
+  "name": "StaticMeshActor_0",
+  "mesh": "/Game/Modular_Sewer_Kit/Meshes/Modules/Walls/SM_module_high_wall_01.SM_module_high_wall_01",
+  "loc": {
+   "x": -9869.999993672664,
+   "y": 1579.9996917673893,
+   "z": 240
+  },
+  "rot": {
+   "pitch": 0,
+   "yaw": 179.9999986056539,
+   "roll": 0
+  },
+  "scale": {
+   "x": 1,
+   "y": 1,
+   "z": 1
+  }
+ },
+ {
+  "name": "StaticMeshActor_122",
+  "mesh": "/Game/Modular_Sewer_Kit/Meshes/Modules/Walls/SM_module_high_wall_01.SM_module_high_wall_01",
+  "loc": {
+   "x": -10770,
+   "y": 1480,
+   "z": 230
+  },
+  "rot": {
+   "pitch": 0,
+   "yaw": -89.99999930282696,
+   "roll": 0
+  },
+  "scale": {
+   "x": 2,
+   "y": 2,
+   "z": 2
+  }
+ },
+ {
+  "name": "StaticMeshActor_845",
+  "mesh": "/Game/Modular_Sewer_Kit/Meshes/Concrete_block/SM_concrete_02.SM_concrete_02",
+  "loc": {
+   "x": -9910,
+   "y": 1390,
+   "z": 220
+  },
+  "rot": {
+   "pitch": 0,
+   "yaw": 0,
+   "roll": 0
+  },
+  "scale": {
+   "x": 1,
+   "y": 1,
+   "z": 1
+  }
+ },
+ {
+  "name": "StaticMeshActor_846",
+  "mesh": "/Game/Modular_Sewer_Kit/Meshes/Concrete_block/SM_concrete_02.SM_concrete_02",
+  "loc": {
+   "x": -10200,
+   "y": 1390,
+   "z": 220
+  },
+  "rot": {
+   "pitch": 0,
+   "yaw": 0,
+   "roll": 0
+  },
+  "scale": {
+   "x": 1,
+   "y": 1,
+   "z": 1
+  }
+ },
+ {
+  "name": "StaticMeshActor_847",
+  "mesh": "/Game/Modular_Sewer_Kit/Meshes/Concrete_block/SM_concrete_02.SM_concrete_02",
+  "loc": {
+   "x": -10480,
+   "y": 1390,
+   "z": 220
+  },
+  "rot": {
+   "pitch": 0,
+   "yaw": 0,
+   "roll": 0
+  },
+  "scale": {
+   "x": 1,
+   "y": 1,
+   "z": 1
+  }
+ },
+ {
+  "name": "StaticMeshActor_853",
+  "mesh": "/Game/Modular_Sewer_Kit/Meshes/Concrete_block/SM_concrete_02.SM_concrete_02",
+  "loc": {
+   "x": -9890,
+   "y": 120,
+   "z": 220
+  },
+  "rot": {
+   "pitch": 0,
+   "yaw": 0,
+   "roll": 0
+  },
+  "scale": {
+   "x": 1,
+   "y": 1,
+   "z": 1
+  }
+ },
+ {
+  "name": "StaticMeshActor_854",
+  "mesh": "/Game/Modular_Sewer_Kit/Meshes/Concrete_block/SM_concrete_02.SM_concrete_02",
+  "loc": {
+   "x": -10180,
+   "y": 120,
+   "z": 220
+  },
+  "rot": {
+   "pitch": 0,
+   "yaw": 0,
+   "roll": 0
+  },
+  "scale": {
+   "x": 1,
+   "y": 1,
+   "z": 1
+  }
+ },
+ {
+  "name": "StaticMeshActor_855",
+  "mesh": "/Game/Modular_Sewer_Kit/Meshes/Concrete_block/SM_concrete_02.SM_concrete_02",
+  "loc": {
+   "x": -10460,
+   "y": 120,
+   "z": 220
+  },
+  "rot": {
+   "pitch": 0,
+   "yaw": 0,
+   "roll": 0
+  },
+  "scale": {
+   "x": 1,
+   "y": 1,
+   "z": 1
+  }
+ }
+]

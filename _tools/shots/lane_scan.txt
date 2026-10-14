@@ -1,0 +1,17 @@
+player at (-1534, 8446, 378)
+Traceback (most recent call last):
+  File "D:\Projects\Substrate\_tools\scan_lane.py", line 44, in <module>
+    loc, _ = loc_of(ref)
+             ^^^^^^^^^^^
+  File "D:\Projects\Substrate\_tools\scan_lane.py", line 29, in loc_of
+    t = json.loads(r)['returnValue']
+        ^^^^^^^^^^^^^
+  File "C:\Users\Murat\AppData\Local\Programs\Python\Python311\Lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Murat\AppData\Local\Programs\Python\Python311\Lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Murat\AppData\Local\Programs\Python\Python311\Lib\json\decoder.py", line 355, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)

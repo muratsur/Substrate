@@ -1,0 +1,8 @@
+player at (-1534, 8423, 378)
+lights within 2500 (6):
+  PersistentLevel.PointLight_16                                          dist=1363   at (-1900, 7150, 700) intensity=420
+  PersistentLevel.PointLight_15                                          dist=1732   at (-600, 7000, 700) intensity=420
+  PersistentLevel.RectLight_21                                           dist=1887   at (-2175, 8484, 2152) intensity=106.45376586914062
+  PersistentLevel.RectLight_23                                           dist=2011   at (-2131, 6513, 569) intensity=1
+  PersistentLevel.RectLight_1                                            dist=2058   at (-503, 10054, 1093) intensity=12
+  PersistentLevel.RectLight_0                                            dist=2407   at (86, 10054, 1093) intensity=12

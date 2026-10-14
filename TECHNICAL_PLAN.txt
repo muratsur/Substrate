@@ -1,0 +1,1116 @@
+================================================================================
+SUBSTRATE - COMPLETE TECHNICAL PLAN
+Architecture, systems, logic, data, tools, steps, tests, milestones.
+Basis: DESIGN.md (design intent) + the project as it exists on 2026-10-11
+(UE 5.8, Blueprint-only, map L_SectorC, 5 Blueprints built).
+Companion file: IMPLEMENTATION_GUIDE.txt (how what exists was built, by hand).
+================================================================================
+
+CONTENTS
+  0.  Reading guide and status key
+  1.  Product definition and hard constraints
+  2.  Current state (what is done / partial / missing)
+  3.  Technology stack and tools
+  4.  Architecture
+        4.1 Layers and ownership
+        4.2 Class map
+        4.3 Data model (tables, data assets, save)
+        4.4 Communication (dispatchers, interfaces, tags)
+        4.5 Naming, folders, conventions
+  5.  Core systems - logic in detail
+        5.1 Round / shift state machine
+        5.2 Checklist generation
+        5.3 Fixture logging and validation
+        5.4 Observation (looked-at) system
+        5.5 Growth system
+        5.6 Anomaly system (director + 10 anomaly types)
+        5.7 Sector transitions (airlocks, route, streaming)
+        5.8 Persistence
+        5.9 Terminal UI
+        5.10 Player character and interaction
+        5.11 Audio architecture
+        5.12 Lighting and post-process pipeline
+        5.13 Failure, escalation and pacing rules
+        5.14 Demo ending / Sector D
+  6.  Sector plan (A-F): content, kit, grade, audio, fixtures, anomalies
+  7.  Round-by-round progression table
+  8.  Performance budgets
+  9.  Build, packaging, Steam
+ 10.  Testing and QA strategy
+ 11.  Milestones, tasks, acceptance criteria
+ 12.  Risk register
+ 13.  Open decisions
+ 14.  Appendix: pseudocode library and node cheat-sheet
+
+
+================================================================================
+0. READING GUIDE
+================================================================================
+Status key used in this file:
+  [DONE]     exists, verified in Play-in-Editor
+  [PARTIAL]  exists, incomplete or unverified in real play
+  [TODO]     not built
+  [LOST]     existed originally, rebuilt or unrecoverable
+Every system below states: PURPOSE, DATA, LOGIC, API (what other systems call),
+EDGE CASES, TEST, STATUS.
+"Blueprint terms" = node names exactly as in the Blueprint editor.
+
+
+================================================================================
+1. PRODUCT DEFINITION AND HARD CONSTRAINTS
+================================================================================
+Genre        Single-player atmospheric horror, first person, no combat.
+Platform     PC / Steam. Engine Unreal 5.8. Price $9.99. Length 2-3 hours.
+Core idea    The checklist is the horror delivery mechanism. The game tells you
+             exactly what to look at; anything wrong that is NOT on the list is
+             unreportable, and the shift will not close until the list is right.
+Antagonist   The level geometry. No monster, no AI, no navmesh, no behaviour
+             trees, no skeletal meshes, no animation blueprints.
+Failure      No death screen. Failure = the shift does not close; you walk the
+             route again and growth has advanced.
+
+HARD CONSTRAINTS (every design decision must respect these)
+  C1  Nothing needs AI, navmesh, animation, or skeletal assets.
+  C2  Every scare is a mesh/light/door/sound state change.
+  C3  Dark but LEGIBLE: the player is scored on noticing detail, so every
+      checklist fixture and every anomaly site must sit in a pool of light.
+  C4  Reuse: the checklist/inspection/"did the player notice" logic must be
+      shareable with the sister project "Inspection Station".
+  C5  Scope guardrail: vertical slice must be unsettling with placeholder
+      audio or the design is wrong (gate verdict already PASSED 2026-07-29).
+  C6  One person. Prefer data-driven systems over hand-built one-offs.
+  C7  Blueprint-only unless a measured need forces C++.
+
+
+================================================================================
+2. CURRENT STATE
+================================================================================
+BUILT (see IMPLEMENTATION_GUIDE.txt sections 5-6 for exact graphs)
+  [DONE]    BP_Fixture        ID, RowOrder, FixtureState (0/1/2), LogResult,
+                              LogFixture, IsLoggedCorrectly, ViewScore,
+                              DistanceFrom, InRowRange, ApplyFixtureState
+  [DONE]    BP_GrowthNode     timer + WasActorRecentlyRendered + once-per-round
+                              latch + mesh/scale ladder
+  [DONE]    BP_RoundManager   round counter, StartShift, TryCloseShift,
+                              ArmGrowth, LogLookedAtFixture (E/Q)
+  [DONE]    BP_Airlock        gated teleport pair, facing fix, disarm
+  [PARTIAL] BP_AnomalyDirector 4 of 10 anomaly types (Absence, Light,
+                              Growth, Displacement), round-band budgets,
+                              round-2 guarantee, revert. 5 sites in
+                              L_SectorC. See ANOMALY_SYSTEM.md
+  [PARTIAL] BP_AnomalySocket   one placed actor per anomaly site
+  [PARTIAL] BP_CanalRescue    recovered; catch volume only
+  [PARTIAL] Level L_SectorC   Sector C (sewer) + Transit corridor + Sector D
+                              grade volume; no Sector A/E/F
+  [PARTIAL] Lighting grade    baseline values in place; still bright in places
+  [PARTIAL] Materials         8 MI_* reconstructed, tints unverified
+  [PARTIAL] Audio             2 placeholder loops (same wav)
+  [LOST]    Originals: BP graph logic, defaults, MI tints, Content/Substrate/UI,
+            other maps, terminal UI, most Core Blueprints.
+
+MISSING SYSTEMS (5.6's anomaly core and 5.9's terminal now exist - see
+ANOMALY_SYSTEM.md and TERMINAL_SYSTEM.md)
+  persistence, audio system, transition fade, sector data-driven route,
+  Sectors A/D/E/F content, demo ending, packaging/Steam integration.
+
+KNOWN DEFECTS (milestone M0, section 11)
+  D1  [FIXED 2026-10-12] GrowthNode_Transit lacked the "Growth" tag; scales now
+      match the 6 stages.
+  D2  [FIXED 2026-10-12] TryCloseShift now only needs rows <= RequiredRowMax (7);
+      C-06 (Sector D) no longer blocks the shift. Verified in PIE.
+  D3  [FIXED 2026-10-12] Logging prints "<ID>: PASS/FLAG" and "Nothing in range".
+  D4  [REVIEWED] Route-end trigger sits 140 units behind the player spawn. This
+      matches the layout (the shift closes where you start); left as is.
+  D5  Airlock destination = "the other airlock" (breaks with a 3rd sector).
+  D6  Level still too bright in places; exposure bias -1.5 is a first pass.
+  D7  Real key presses E/Q not verified in an actual play session. Raised by the
+      terminal: F (raise/stow) is in the same boat - automation cannot send
+      keyboard input, so both need one real play pass.
+  D8  [NEW 2026-10-13] The terminal's world-space widget has never been seen.
+      Automation cannot screenshot the game, and world-space widgets do not render
+      in the editor viewport, so its size, legibility and facing are unverified.
+      It receives the checklist correctly (verified from the log). If the text
+      reads mirrored in game, set ScreenYaw to 0 on Terminal_01.
+  D9  [NEW 2026-10-13] The terminal is a placeholder slab (no SM_Terminal asset)
+      and has no sounds; rows carry no state beyond their [ ]/[PASS]/[FLAG]
+      marker (no greyed locked-sector rows). See TERMINAL_SYSTEM.md deviations.
+
+
+================================================================================
+3. TECHNOLOGY STACK AND TOOLS
+================================================================================
+3.1 Runtime
+  Unreal Engine 5.8                 engine
+  Blueprints                        all gameplay (C7)
+  Lumen GI + Reflections            dynamic lighting (project is fully dynamic)
+  Virtual Shadow Maps               shadows
+  Nanite                            kit meshes (verify per mesh)
+  Volumetric Fog                    per-sector atmosphere
+  Substrate material system         enabled (r.Substrate=True)
+  Enhanced Input                    movement/look (template); E/Q currently raw keys
+  MetaSounds + Sound Attenuation    audio
+  SaveGame object                   persistence
+  UMG + Widget Component            terminal UI
+  Data Tables / Primary Data Assets data-driven route, anomalies, sectors
+  Level Streaming / Data Layers     later: per-sector load (section 5.7)
+  Common UI (optional)              menus, rebinding
+
+3.2 Authoring
+  Unreal Editor                     all content
+  Epic Launcher + Fab               kits (Laya Design bundle)
+  Blender (optional)                prop fixes; MCP connector exists
+  Audio: Reaper/Audacity + a sound library (budgeted; DESIGN.md section 9)
+  Git + GitHub (muratsur/Substrate) version control; binary assets, no merging
+  (Optional) Git LFS                for .uasset/.umap/.wav once content grows
+
+3.3 Automation (optional but proven in this project)
+  Claude Code + Unreal ModelContextProtocol plugin (127.0.0.1:8000/mcp):
+    Blueprint creation/editing (graph DSL), actor/property reads, PIE start/stop,
+    material instance edits, asset save.
+  Python helper scripts in _tools/ (ue_mcp.py, umap_inventory.py).
+  Use for: regression runs (section 10), bulk property edits, level audits.
+  Limits learned: cannot send real key presses to the PIE viewport; the editor
+  must be visible to capture screenshots; "save all dirty" must never be used.
+
+3.4 Packaging / release
+  Unreal Automation Tool (Project Launcher / BuildCookRun) Windows Shipping
+  Steamworks SDK + OnlineSubsystemSteam (Steam)   achievements/cloud saves (later)
+  Steamworks partner account, store page assets, depots, SteamPipe
+
+
+================================================================================
+4. ARCHITECTURE
+================================================================================
+4.1 LAYERS AND OWNERSHIP
+  Layer           Owns                                   Lives in
+  --------------  -------------------------------------  ---------------------
+  Game flow       round, shift state, route unlocks,     BP_RoundManager (1 per
+                  win/lose, demo end                     persistent level)
+  World state     fixture states, growth stages,         the placed actors
+                  anomaly list
+  Content rules   what can happen when                   DataTables / DataAssets
+  Presentation    UI, audio, post-process, fades         WBP_*, MetaSounds,
+                                                         PPV volumes
+  Persistence     what survives a session                USubstrateSave object
+
+  RULE: gameplay state is stored on the game-flow layer and on world actors.
+  Presentation reads state through dispatchers; it never owns state.
+
+4.2 CLASS MAP (target)
+  Core (Content/Substrate/Core)
+    BP_SubstrateGameInstance   persists across level loads; save slot name;
+                               settings; current round cache            [TODO]
+    BP_RoundManager            flow + route + checklist                 [DONE+]
+    BP_AnomalyDirector         rolls and applies anomalies per round    [PARTIAL]
+    BP_Fixture                 checklist item                           [DONE]
+    BP_GrowthNode              biomass                                  [DONE]
+    BP_Airlock                 sector link                              [DONE]
+    BP_SectorVolume            marks a sector's bounds; owns PPV/audio/
+                               fog switching, streaming hints           [TODO]
+    BP_AnomalySocket           one placed site per anomaly (not a class
+                               per type - see ANOMALY_SYSTEM.md)        [PARTIAL]
+    BPC_Observer (component)   "is this actor in view" + dwell time     [TODO]
+    BPI_Anomalous (interface)  Apply(Params) / Revert()  NOT CREATABLE
+                               with the editor toolset; dispatch is by
+                               type code inside BP_AnomalySocket        [TODO]
+    BPI_Loggable (interface)   Log(Result) / IsCorrect() - lets non-fixture
+                               props appear on the checklist            [TODO]
+  Data (Content/Substrate/Data)
+    DT_Route                   links between sectors, unlock rules      [TODO]
+    DT_Checklist               fixture definitions (ID, row, sector)    [TODO]
+    DA_Anomaly (Primary Data Asset) anomaly definitions                 [TODO]
+    DA_Sector (Primary Data Asset)  per-sector grade/audio/fog          [TODO]
+    DT_RoundBands              anomaly budget and type weights per round[TODO]
+  UI (Content/Substrate/UI)
+    WBP_Terminal               diegetic checklist                       [TODO]
+    WBP_HUDMessage             short on-screen feedback                 [TODO]
+    WBP_FadeOverlay            transition fade                          [TODO]
+    WBP_Menu / WBP_Pause       menus                                    [TODO]
+  Audio (Content/Substrate/Audio)
+    MS_RoomTone_<Sector>       MetaSound per sector                     [TODO]
+    MS_Footstep, MS_Terminal*  surface/terminal sounds                  [TODO]
+    SC_* sound classes + SM_* sound mix (buses)                         [TODO]
+  Save
+    USubstrateSave (SaveGame)                                           [TODO]
+
+4.3 DATA MODEL
+
+  DT_Checklist  (row struct FChecklistRow)
+    RowId        Name       unique, e.g. "C01"
+    DisplayText  Text       "C-01 INLET VALVE"   (what the terminal shows)
+    RowOrder     int        global order
+    Sector       Name       "C"
+    FixtureTag   Name       tag on the placed BP_Fixture to bind to
+    Phantom      bool       true = listed but no actor (checklist corruption)
+    MinRound     int        first round the row appears
+    Gate         Name       "" or the airlock id that must be unlocked
+  Maps the existing 9 fixtures one-to-one:
+    C01..C05 (rows 0-4), B01..B03 (rows 5-7), C06 (row 8, Sector D, phantom
+    until round 5 per TEST_ME.md).
+
+  DT_Route  (row struct FRouteLink)
+    LinkId       Name       "C_to_B"
+    FromSector   Name
+    ToSector     Name
+    FromAirlock  Name       airlock id
+    ToAirlock    Name       airlock id
+    MinRound     int        link exists from this round
+    RequiredRows array<Name> rows that must be logged correctly to open
+    FadeSeconds  float
+    Notes        string
+  Initial rows:
+    C_to_B   C->B  MinRound 1  Required C01..C05
+    B_to_C   B->C  MinRound 1  Required B01..B03
+    (A_to_B, B_to_A added with Sector A; C_to_D, D_to_C from round 8; D_to_E,
+     E_to_F later)
+
+  DA_Anomaly  (Primary Data Asset)
+    AnomalyId    Name
+    Type         enum E_AnomalyType {Growth, Absence, Addition, Displacement,
+                 Geometry, Light, Shadow, Audio, ChecklistCorruption, Repetition}
+    TargetTag    Name or actor soft ref      what it acts on
+    Sector       Name
+    MinRound     int
+    MaxRound     int (0 = no limit)
+    SeverityWeight float                    1 small .. 5 large
+    Params       map<Name, string>          type-specific (offset, scale ...)
+    Detectable   bool                       must be possible to see in the light
+    RequiresLoggedAs  enum {None, FLAG}     what the correct log is
+    Cooldown     int rounds before reuse
+    Revert       enum {EndOfShift, WhenFlagged, Never}
+
+  DT_RoundBands (FRoundBand)
+    FromRound, ToRound
+    AnomalyBudget (min,max)       how many anomalies per round
+    TypeWeights map<E_AnomalyType,float>
+    AllowedSectors array<Name>
+    Notes
+  Initial bands (from DESIGN.md section 6):
+    1-1    budget 0        pristine baseline
+    2-2    budget 1        Absence 1.0                   (first, deniable)
+    3-7    budget 1-2      Absence .4 Light .4 Growth .2 (types 1,2,6)
+    8-14   budget 2-3      + Geometry, Checklist, Repetition
+    15+    budget 3-5      route no longer resolves
+
+  USubstrateSave (SaveGame)
+    SaveVersion        int
+    CurrentRound       int
+    ShiftOpen          bool
+    UnlockedLinks      array<Name>
+    FixtureStates      map<Name(RowId), int>
+    LogResults         map<Name, int>
+    GrowthStages       map<Name(actor tag), int>
+    ActiveAnomalies    array<struct{AnomalyId, Round applied, seed}>
+    UnreportedCount    int           (for the harder rule)
+    RngSeed            int           (deterministic replays)
+    PlaytimeSeconds    float
+    Settings           volume, sensitivity, subtitles
+
+4.4 COMMUNICATION
+  Event dispatchers on BP_RoundManager (UI/audio bind to these):
+    OnShiftStarted(Round)
+    OnFixtureLogged(RowId, Result, WasCorrect)
+    OnShiftClosed(Success, Round)
+    OnAnomalyApplied(AnomalyId, Type)
+    OnSectorEntered(SectorId)
+    OnLinkUnlocked(LinkId)
+  Interfaces:
+    BPI_Anomalous: Apply(Params), Revert()   implemented by fixtures, lights,
+                   doors, props, growth nodes
+    BPI_Loggable : GetRowId(), GetState(), Log(Result), IsCorrect()
+  Tags (Actor tags): Growth, FixtureB/C/D, RoundManager, Anomaly_<Type>,
+    Sector_<Id>, AirlockId_<id>
+  Rule: look up by tag/ID once at BeginPlay and cache; never call "Get All
+  Actors Of Class" in Tick.
+
+4.5 NAMING AND FOLDERS
+  Prefixes: BP_ blueprint, BPC_ component, BPI_ interface, WBP_ widget,
+    DA_ data asset, DT_ data table, MI_ material instance, M_ material,
+    SM_ static mesh, MS_ MetaSound, SC_ sound class, L_ level.
+  Content/Substrate/{Core, Data, UI, Audio, Maps, Materials, Anomalies, Sectors}
+  Content/Sectors_<X>/ for sector-specific props that are not kit assets.
+  Level actor labels: <Type>_<Sector><Index>, e.g. Fix_B01, Airlock_DockToTransit.
+  One feature per branch; PR per feature; merge on GitHub; see git rules in
+  IMPLEMENTATION_GUIDE.txt section 11.
+
+
+================================================================================
+5. CORE SYSTEMS - LOGIC IN DETAIL
+================================================================================
+
+--------------------------------------------------------------------------------
+5.1 ROUND / SHIFT STATE MACHINE            owner: BP_RoundManager   [DONE+TODO]
+--------------------------------------------------------------------------------
+PURPOSE   Single source of truth for "where are we in the loop".
+STATES
+   Boot ----------> ShiftOpen ----------> AtRouteEnd ----------> Evaluating
+     ^                  |  ^                                       |
+     |                  |  +---- (failure: stay open, re-arm) -----+
+     |                  v                                          |
+     +-------------- NextRound <------ (success) ------------------+
+                                                   |
+                                                   v  (round == FinalRound)
+                                                 Ending
+TRANSITIONS
+   Boot        BeginPlay: load save (5.8); if none, CurrentRound = 0.
+   -> ShiftOpen   StartShift():
+                    CurrentRound += 1
+                    ShiftOpen = true
+                    reset all fixture logs
+                    run anomaly director (5.6) for this round
+                    generate checklist (5.2)
+                    arm growth (5.5)
+                    broadcast OnShiftStarted
+                    save (autosave)
+   ShiftOpen -> AtRouteEnd   player enters the route-end trigger
+   AtRouteEnd -> Evaluating  TryCloseShift():
+                    required = rows in the checklist for this round
+                    ok = every required row logged AND correct
+   Evaluating -> NextRound   ok: broadcast OnShiftClosed(true); StartShift()
+   Evaluating -> ShiftOpen   not ok: broadcast OnShiftClosed(false);
+                             re-arm growth; keep logs; show terminal state
+   NextRound -> Ending       CurrentRound == FinalRound and end condition met
+FIXES REQUIRED (D2): "required rows" must come from the round's checklist
+   (DT_Checklist filtered by MinRound/Sector unlocked), not "all fixtures in the
+   map". Phantom rows are required to be FLAGged by absence-of-a-field: see 5.6.9.
+EDGE CASES
+   - Player closes the shift while standing in two triggers: debounce 1 s.
+   - Save/load mid-shift: restore logs, anomalies, growth stage exactly.
+   - Player never leaves a sector: nothing forces progress; the airlock gate
+     (5.7) is the only gate.
+TEST     T6 in IMPLEMENTATION_GUIDE.txt + load/save mid-shift (5.8).
+
+--------------------------------------------------------------------------------
+5.2 CHECKLIST GENERATION                   owner: BP_RoundManager   [TODO]
+--------------------------------------------------------------------------------
+PURPOSE   Decide which rows are on the terminal this round, in what order,
+          with what text.
+INPUT     DT_Checklist, CurrentRound, UnlockedLinks, ActiveAnomalies
+ALGORITHM
+   rows = []
+   for r in DT_Checklist:
+       if r.MinRound > CurrentRound: continue
+       if r.Sector not reachable (no unlocked link path from start): continue
+       rows.append(r)
+   sort rows by RowOrder
+   for each active anomaly of type ChecklistCorruption:
+       apply to rows (5.6.9): rename a row, add a phantom row, or remove one
+   assign each row a runtime state {Unlogged, PASS, FLAG}
+   store as RoundChecklist (array of FRuntimeRow) on the manager
+OUTPUT    RoundChecklist  -> terminal (5.9) and shift evaluation (5.1)
+EDGE      A phantom row has no actor. It can never be logged by looking. Design
+          decision (open, section 13): player may FLAG it from the terminal, or
+          it can never be satisfied (TEST_ME.md: "unreportable since round 5").
+TEST      Round 5: terminal shows the phantom row; shift behaviour matches the
+          chosen rule.
+
+--------------------------------------------------------------------------------
+5.3 FIXTURE LOGGING AND VALIDATION         owner: BP_Fixture/Manager [DONE]
+--------------------------------------------------------------------------------
+PURPOSE   Turn "I looked at it" into PASS/FLAG and judge correctness.
+DATA      FixtureState (truth): 0 nominal, 1 degraded, 2 absent.
+          LogResult: 0 none, 1 PASS, 2 FLAG.
+RULE      correct = (FixtureState == 0 AND LogResult == 1) OR
+                    (FixtureState != 0 AND LogResult == 2)
+INPUT     E -> Result 1, Q -> Result 2 (raw keys now; move to Enhanced Input).
+TARGET PICK (LogLookedAtFixture)
+   camera = player camera manager
+   for each fixture f within cone: score = distance (else 9999)
+   best = argmin score; accept if score < 400
+   Cone: dot(normalize(f - eye), forward) > 0.8; range 400 uu.
+IMPROVEMENTS [TODO]
+   - Add line-of-sight test (a trace) so fixtures behind walls cannot be logged.
+   - Absent fixtures are hidden and non-colliding: they cannot be picked.
+     Provide a "log the empty mount": place an invisible BP_FixtureMount at the
+     fixture location; looking at the mount allows FLAG. (Needed so absence is
+     reportable. Decision D-ABS in section 13.)
+   - Feedback: HUD message + soft click sound; "unlogged" = no message.
+   - Allow changing a log (re-press) until shift close.
+API       LogFixture(Result), ResetLog(), IsLoggedCorrectly(), ViewScore(...)
+TEST      Logging matrix: 3 states x 3 results; nearest-wins; out-of-range;
+          behind player (all verified except real keypress, D7).
+
+--------------------------------------------------------------------------------
+5.4 OBSERVATION SYSTEM                      owner: BPC_Observer     [TODO]
+--------------------------------------------------------------------------------
+PURPOSE   One reusable answer to "is X being looked at" and "how long" - used by
+          growth, anomaly noticing/telemetry, scripted events, and reusable by
+          Inspection Station (C4).
+IMPLEMENTATION
+   Component on the player pawn. Two query modes:
+   (a) WasActorRecentlyRendered(actor, tolerance)  - cheap, covers occlusion
+       and frustum; used by growth nodes (already in 5.5).
+   (b) Cone + trace for gameplay targeting (5.3): dot > threshold AND
+       LineTraceByChannel(visibility) hits the target within range.
+   Timer-based, 0.2 s, never per frame.
+   Maintains Dwell[actor] = seconds the actor has been in view this shift.
+API       IsLooking(actor), GetDwell(actor), Noticed(actor, minSeconds)
+USE       "Noticed" feeds telemetry: how many anomalies the player looked at for
+          >= 1.5 s before logging; used to tune the director (section 10).
+
+--------------------------------------------------------------------------------
+5.5 GROWTH SYSTEM                           owner: BP_GrowthNode    [DONE]
+--------------------------------------------------------------------------------
+PURPOSE   Biomass that changes only while unobserved, once per round.
+LOGIC (already implemented, see IMPLEMENTATION_GUIDE.txt 5.2)
+   Every 0.2 s: if EligibleThisRound and NOT recently rendered, accumulate
+   UnobservedTime; when >= SecondsToAdvance and the stage index is valid:
+   swap mesh, set scale, StageIndex++, EligibleThisRound = false.
+   Manager re-arms tagged nodes at StartShift and on a failed close.
+TUNING TABLE (set in class defaults; per instance override allowed)
+   SecondsToAdvance 4 (testbed). Production: 8-20 s so it feels like "turned
+   my back", not a timer. GrowthScales 0.1 .. 1.0 (stain -> hero asset).
+   Stage meshes: Alien_Biomass SM_alien_organism _01.._09.
+DEFECTS   D1 tag on GrowthNode_Transit. Stage 6 has no scale (5 scales, 6 meshes).
+ADDITIONS [TODO]
+   - Implement BPI_Anomalous so a "Growth" anomaly can force a stage.
+   - Per-node "MaxStage" so Sector C never reaches hero size before round N.
+   - Persistence of StageIndex (5.8).
+   - Audio: a faint cue when growth advances out of sight (optional).
+
+--------------------------------------------------------------------------------
+5.6 ANOMALY SYSTEM                      owner: BP_AnomalyDirector   [PARTIAL]
+    BUILT 2026-10-12: budgets per round band, weighted type pick, threshold
+    dispatch in BP_AnomalySocket for Absence/Light/Growth/Displacement,
+    revert at the next StartShift, round-2 single-Absence guarantee, and
+    on-screen feedback. Data lives on the placed sockets, not in DT/DA
+    assets (the editor toolset cannot create structs/enums/DataTables).
+    Verified in PIE for rounds 1-3. Full write-up: ANOMALY_SYSTEM.md.
+--------------------------------------------------------------------------------
+PURPOSE   The scare engine. Each round, choose and apply a small set of state
+          changes the player can notice and must report.
+5.6.1 DIRECTOR ALGORITHM (called from StartShift after ResetLog)
+   band = DT_RoundBands.Find(CurrentRound)
+   budget = RandomIntInRange(band.Budget.min, band.Budget.max)   (seeded RNG)
+   pool = all DA_Anomaly where:
+            MinRound <= CurrentRound <= MaxRound (or MaxRound == 0)
+        AND sector reachable
+        AND not used within Cooldown rounds
+        AND target resolves to a live actor
+        AND (not Detectable OR target is lit: light probe test)
+   applied = []
+   repeat budget times:
+       weights[a] = band.TypeWeights[a.Type] * a.SeverityWeight
+       pick a by weighted random (exclude same target twice)
+       a.Apply()                      via BPI_Anomalous on the target
+       applied.append(a)
+       record in ActiveAnomalies (save)
+       broadcast OnAnomalyApplied
+   guarantee: if CurrentRound == 2 and applied is empty -> force one Absence
+   (DESIGN.md: "land the first anomaly in round 2, small and deniable")
+5.6.2 REVERT RULES
+   EndOfShift     reverted at StartShift of the next round (before the roll)
+   WhenFlagged    reverted when the player FLAGs it correctly
+   Never          permanent (accumulating dread; used for Growth, Geometry)
+5.6.3 THE HARDER RULE (later rounds)
+   UnreportedCount += number of applied anomalies the player did not FLAG at
+   close. If UnreportedCount > threshold (default 4), the director also closes
+   route segments behind the player (disable a link in DT_Route) - DESIGN.md §3.
+5.6.4 FAIRNESS CONSTRAINTS (so it feels earned, not cheap)
+   - Every anomaly must be perceivable: target inside light, within a route
+     segment the player must walk, and visible from where they would stand.
+   - Never place two anomalies in the same room in rounds 2-7.
+   - Light anomalies must change by >= 25% luminance or hue to be noticed.
+   - Never an anomaly on a row the player cannot log (unless Phantom, 5.2).
+5.6.5..5.6.14 THE TEN TYPES - how each is implemented
+ #  Type            Implementation (no AI, no animation)                  Effort
+ 1  Growth          Force BP_GrowthNode.StageIndex +1 immediately, or set a
+                    new node's mesh to stage 1 at an anomaly socket.        Low
+ 2  Absence         BP_Fixture.ApplyFixtureState(2) (hidden, no collision) or
+                    hide any BPI_Anomalous prop (crate, sign). [DONE core]  Low
+ 3  Addition        Spawn/unhide a prop that was never there (a mannequin
+                    stand, a stain decal, a door) from a pre-placed pool
+                    of "hidden" actors tagged Anomaly_Addition.             Low
+ 4  Displacement    Move a tagged prop by Params.Offset (2-5 m) with a
+                    small rotation; revert via stored transform.            Low
+ 5  Geometry        Swap an actor group: corridor segment A <-> longer
+                    segment B (two pre-placed variants, one hidden), or
+                    scale a module mesh on one axis; shift a door frame.   Med
+ 6  Light           Change a light's intensity/colour/flicker via
+                    BPI_Anomalous: dead bulb (intensity 0), colour
+                    temperature shift, flicker curve change.               Low
+ 7  Shadow          A shadow that does not match its caster: a hidden
+                    "shadow proxy" static mesh (cast shadow only, hidden in
+                    game) toggled on; or move a light so a shadow detaches.Low*
+                    (*very effective; prioritize per DESIGN.md)
+ 8  Audio           Remove/mute a room-tone MetaSound source, or play a
+                    sourceless sound at a point; "the room tone stops"
+                    is the strongest cue.                                  Low
+ 9  Checklist       Terminal lists a row for a fixture that does not exist,
+    corruption      renames one the player knows (text swap), or reorders.
+                    Implemented in checklist generation (5.2). Needs the
+                    terminal UI first.                                     Med
+ 10 Repetition      On leaving a room, the player's next airlock lands them
+                    back in the room they just left (route table override
+                    for one link, one round).                              Med
+5.6.15 DATA AUTHORING WORKFLOW (how to add an anomaly in 5 minutes)
+   1. Tag the target actor in the level (e.g. Anomaly_Absence).
+   2. Create DA_Anomaly asset: Type, TargetTag, Sector, MinRound, weights.
+   3. If the target is not a BP_Fixture, add BPI_Anomalous to its Blueprint and
+      implement Apply/Revert.
+   4. Add the asset to the director's registry array (or auto-scan folder).
+   5. Run regression R3 (section 10) to confirm it appears and reverts.
+TEST      Round 1 none; round 2 exactly one; round 2 repeated runs with the same
+          seed identical; budgets honoured per band; cooldown honoured.
+
+--------------------------------------------------------------------------------
+5.7 SECTOR TRANSITIONS                  owner: BP_Airlock + route   [PARTIAL]
+--------------------------------------------------------------------------------
+(See also the earlier discussion: every transition is an airlock gated by the
+checklist; nothing is unlocked by finding keys.)
+CURRENT   Trigger -> GateOpen (rows in [GateRowMin, GateRowMax] correct) ->
+          Transit() teleports to "the other airlock", disarms it, turns the
+          player to the nearest fixture.
+TARGET MECHANISM (data-driven)
+   BP_Airlock fields: AirlockId (Name), SectorId (Name), plus the existing
+   Disarmed. GateRowMin/Max are replaced by lookup in DT_Route.
+   OnBeginOverlap(Player):
+       if Disarmed: return
+       link = DT_Route.FindByFromAirlock(AirlockId)
+       if link invalid or CurrentRound < link.MinRound or link disabled:
+            show "No access"; return
+       if not all link.RequiredRows correct:
+            show locked message with count of remaining rows; return
+       BeginTransition(link)
+   BeginTransition(link):
+       1  lock player input (movement + look) 0.3 s
+       2  fade to black over link.FadeSeconds (WBP_FadeOverlay)
+       3  play airlock door sound (cycle) - hides streaming/teleport
+       4  dest = airlock with AirlockId == link.ToAirlock
+       5  if streaming: LoadStreamLevel(dest sector), wait until loaded;
+          UnloadStreamLevel(origin sector) after the fade is complete
+       6  SetActorLocation(player, dest) ; face dest.ArrivalDirection (or
+          nearest fixture as fallback)
+       7  Disarm dest until the player leaves it
+       8  switch grade: activate dest sector's PPV/fog/room tone
+          (BP_SectorVolume.OnEnter) ; broadcast OnSectorEntered
+       9  fade in ; unlock input
+   ARRIVAL FACING: store ArrivalYaw on each airlock (no more "nearest fixture"
+   heuristic once sector layouts are final).
+TRANSITION KINDS (choose per link, DT_Route.Kind)
+   Teleport       one map, spatially separate areas (current)
+   Stream         sub-level swap behind the fade (full game)
+   Walk           true walkable connection (only if a sector is seamless)
+   Mutate         same physical door, different destination this round
+                  (Repetition / "facility is larger than you were told")
+PERFORMANCE   Teleport-in-one-map is fine for the demo (A-C). For D-F use
+   level streaming: each sector is a sub-level; only current + next loaded.
+EDGE CASES
+   - Falling into a canal (BP_CanalRescue) must not leave the player in an
+     unloaded sector: rescue teleports to the current sector's RespawnPoint.
+   - Player at the airlock while the round changes: re-evaluate gate.
+   - Two players? Not supported.
+TEST      Gate lock/unlock matrix (done); facing; no ping-pong; fade timing;
+          stream load while fading; save inside a transition = save before it.
+
+--------------------------------------------------------------------------------
+5.8 PERSISTENCE                         owner: SaveGame + GameInstance [TODO]
+--------------------------------------------------------------------------------
+WHEN TO SAVE   StartShift (autosave), successful close, quit, settings change.
+WHAT           USubstrateSave fields in 4.3.
+HOW
+   Save:    CreateSaveGameObject -> fill from manager/director/growth nodes ->
+            SaveGameToSlot("Substrate_0", 0)
+   Load:    on BeginPlay: DoesSaveGameExist -> LoadGameFromSlot -> apply:
+            CurrentRound; fixture states by RowId (DT_Checklist.FixtureTag);
+            growth stages by actor tag; ActiveAnomalies (re-apply with the
+            stored seed); logs.
+   Versioning: SaveVersion; on mismatch migrate or reset with a message.
+   Cloud: Steam Cloud on the save slot file (later).
+RULES   Never save while in a transition. Never save a half-applied anomaly -
+        save the anomaly list and re-apply on load.
+TEST    Quit mid-shift -> relaunch: round, logs, fixture states, growth stage
+        identical. Corrupt/missing save -> clean new game.
+
+--------------------------------------------------------------------------------
+5.9 TERMINAL UI (diegetic)        owner: WBP_Terminal   [DONE v1 2026-10-13]
+  Built: WBP_Terminal + BP_Terminal (attached to the camera, F to raise/stow) +
+  BP_RoundManager.RefreshTerminal/FindTerminal/AddRowIfMatch/PushTerminal.
+  Verified in PIE: 8 rows in RowOrder, one marker each, footer BLOCKED -> READY.
+  Full write-up, deviations and tuning table: TERMINAL_SYSTEM.md.
+--------------------------------------------------------------------------------
+PURPOSE   The checklist as an object in the world; the horror is its refusal to
+          list what you can see.
+DESIGN
+   - A handheld mesh (SM_Terminal) attached to the first-person camera socket,
+     shown when the player holds the "terminal" key (Tab or hold F).
+   - The screen is a Widget Component rendered to a material (3D widget) on the
+     mesh. It is NOT a screen-space overlay.
+   - Rows: "<DisplayText>   [ ] / [PASS] / [FLAG]" in RowOrder; current round at
+     the top: "SHIFT 014"; footer: "CLOSE SHIFT: BLOCKED" until all correct.
+   - States: all rows listed; rows of a locked sector are greyed; phantom or
+     corrupted rows look identical to real ones.
+   - Feedback sounds: key click (E/Q), confirm chime on PASS, UNPLEASANT error
+     tone on FLAG of a nominal fixture ("make the error tone unpleasant").
+DATA     Binds to RoundChecklist (5.2); updates on OnFixtureLogged.
+INPUT    Hold to raise; E/Q still log the looked-at fixture; scroll (mouse
+         wheel) if more than 8 rows.
+NO NEW   system: the terminal only reads and displays; logging stays in 5.3.
+TEST     Rows match the checklist; updates live; corrupted row shows; raise/
+         lower does not break interaction; readable at 1080p and 4K.
+
+--------------------------------------------------------------------------------
+5.10 PLAYER AND INTERACTION                owner: BP_FirstPersonCharacter [PART]
+--------------------------------------------------------------------------------
+BASE      UE First Person template (recovered BP_FirstPersonCharacter).
+DESIGN    (DESIGN.md section 10) walk ~250 uu/s, no sprint, subtle head bob,
+          no weapon, no visible body.
+TO DO     - Strip weapon/mesh bits the template added; set MaxWalkSpeed 250.
+          - Camera: FOV 90, no post-process overrides (grade belongs to
+            volumes).
+          - Footsteps: physical-material driven (5.11).
+          - Interaction prompt: fixture glows softly when it is the current
+            target (uses ViewScore).
+          - Keep the character BP unchanged on disk unless necessary (it is a
+            recovered asset; edit via a child class BP_SubstratePlayer).
+SAFETY    Fall rescue (BP_CanalRescue) per sector; kill-Z.
+
+--------------------------------------------------------------------------------
+5.11 AUDIO ARCHITECTURE                     owner: audio       [PARTIAL/TODO]
+--------------------------------------------------------------------------------
+GOAL      Highest-risk area (DESIGN.md §9, §13). Players identify a sector with
+          eyes closed.
+STRUCTURE
+   Sound classes: Master > Music(none) | Ambience | SFX | UI | Footsteps
+   Sound mix: duck Ambience slightly while the terminal is raised.
+   MetaSound sources:
+     MS_RoomTone_C  slow filtered noise bed + low drone + wet hiss; params:
+                    Intensity (0..1), Brightness, Presence(bool)
+     MS_RoomTone_B  cold ventilation, high-frequency air, window rattle
+     MS_RoomTone_A  warm hum, lived-in (fridge, ventilation)
+     MS_WaterDrips  randomized drip with distance filter
+     MS_Footstep    selects sample set by Physical Material
+   Per-sector: BP_SectorVolume starts the sector's room tone and fades the
+   others (crossfade 1-2 s). The "room tone stops" anomaly = set Presence false.
+   Spatial: Attenuation with occlusion; reverb volumes per room.
+ASSETS NEEDED
+   Footsteps: AudioSource FS_River_*, FS_Sewer_*, FS_WetConcrete_* (have).
+   Terminal: key click, chime, error tone (buy/make).
+   Room tones: one per sector (buy a library or commission; do not rely on free
+   tier - DESIGN.md §9).
+   NO jump-scare stingers (DESIGN.md §9).
+PLACEHOLDERS NOW: AMB_SewerRoomTone_Loop and AMB_WaterDrips_Loop are both the
+   wade loop; replace per sector.
+TEST     Blind test: play 10 s of each room tone; tester names the sector.
+         Anomaly "tone stops" noticed by >= 60% of testers without prompting.
+
+--------------------------------------------------------------------------------
+5.12 LIGHTING AND POST-PROCESS PIPELINE         owner: art/tech     [PARTIAL]
+--------------------------------------------------------------------------------
+PRINCIPLES (DESIGN.md §8)
+   1. Fix exposure FIRST (locked), then light. Auto-exposure adaptation undoes
+      every attempt to darken.
+   2. Dark but legible: crushed blacks in negative space; every fixture inside
+      a pool of motivated light.
+   3. The player never sees more than ~15 m of corridor (fog/geometry breaks).
+   4. Practical lights are level design: each checklist fixture has its own
+      light; the route is a chain of lit islands connected by dark.
+GLOBAL BASELINE (current values, L_SectorC)
+   Directional 0.5 cold blue (0.62,0.78,1.0) ; Sky 0.45
+   Fog density 0.28, inscattering (0.011,0.017,0.021), volumetric albedo
+   (0.42,0.48,0.55), extinction 1.1
+   Global PPV (unbound): exposure min=max=0.55, bias -1.5, saturation 0.8,
+   vignette 0.55, bloom 0.1
+PER-SECTOR GRADE: DA_Sector asset + one bounded PostProcessVolume per sector,
+   priority above the global. Table (target look; tune in Play):
+   Sector  Mood             Bias   Saturation   Fog colour       Key light
+   A       lived-in, warm    -1.0   0.9          warm grey        warm practicals
+   B       cold, isolated    -1.5   0.7          steel blue       cool strips
+   C       damp, green       -1.6   0.6          dark green-teal  sparse lamps
+   D       source, wrong     -1.6   0.55         blue-black       bioluminescent
+   E       scale shift       -1.2   0.7          neutral          big shafts
+   F       beneath           -1.8   0.5          deep blue        crystal glow
+LIGHT BUDGET RULES
+   - Max ~12 shadow-casting local lights visible at once (VSM cost).
+   - Prefer rect/point lights with small attenuation radius; set per-light
+     "Max Draw Distance"; disable shadows on filler lights.
+   - Light units: candelas. At exposure 0.55 a corridor practical needs ~5-50
+     cd, not hundreds. Re-tune the 900 cd Transit lights (D6).
+   - Emissives count as light under Lumen: keep emissive strips low.
+TOOLS    ShowFlag.VisualizeBuffer, r.Lumen.Visualize*, Stat GPU, the Lit mode
+         "Game Settings" off to judge exposure like the player sees it.
+PROCESS (per sector)
+   1. Lock exposure via the sector PPV. 2. Kill kit lights/emissives. 3. Place
+   motivated practicals at each fixture. 4. Fog density/colour. 5. Decals
+   (grime, wet). 6. Screenshot test at 3 spots. 7. Legibility test: can a
+   tester spot a deliberately moved prop in 5 s? (acceptance criterion)
+
+--------------------------------------------------------------------------------
+5.13 FAILURE, ESCALATION AND PACING          owner: design/Manager [PARTIAL]
+--------------------------------------------------------------------------------
+   - No death. Failed close = same shift, growth re-armed (done).
+   - Escalation by round bands (section 7) - never by time.
+   - Round 1-2 are a churn risk: keep round 1 short (one lap, 3-4 fixtures),
+     land the first anomaly in round 2.
+   - Pacing guard: if a round exceeds 8 minutes with no logging, nudge with a
+     subtle terminal blink (never a prompt).
+   - "Dread budget": at most one high-severity anomaly per round before round 8.
+
+--------------------------------------------------------------------------------
+5.14 DEMO ENDING / SECTOR D                                      [TODO]
+--------------------------------------------------------------------------------
+From TEST_ME.md: closing the shift on round 8 grants access to Sector D, drops
+you at the mouth of a corridor, the facility "talks to you" three times; at the
+far end is C-06 RELIEF VALVE (the phantom row unreportable since round 5);
+pressing E or Q ends the demo; 15-minute fallback timer.
+IMPLEMENTATION
+   - New link C_to_D (MinRound 8) in DT_Route.
+   - Sector D corridor: SM_path / SM_module_round_01 with MI_SectorD_* (retint).
+   - Three spoken beats: three trigger boxes -> play VO/terminal text lines
+     once each (text on terminal if no VO).
+   - C-06: BP_Fixture with FixtureID "C-06 RELIEF VALVE"; on LogFixture ->
+     RoundManager.EndDemo(): fade to black, credits/wishlist screen, quit/menu.
+   - Fallback: timer started on entering D, EndDemo at 15 min.
+   - Silent sector: add sector D room tone (it is silent in TEST_ME.md "known
+     gaps").
+
+
+================================================================================
+6. SECTOR PLAN (A-F)
+================================================================================
+Route: A -> B -> C -> B -> A early; later D, then E, then F appended. The
+checklist starts listing them with no explanation.
+
+ Sector  Role                        Kit                    Round avail.  Status
+ A       Habitation/Control. Start   Science Fiction        1             [TODO]
+         and end; the safe room;     Hideout
+         must feel lived-in.
+ B       Transit. Corridors with     Sci-Fi Snow Station    1             [PART]
+         exterior windows; cold,     (Ice_Station)
+         isolation.
+ C       Filtration. The underbelly; Sewers Modular Kit     1             [PART]
+         first growth appears here.
+ D       Research / the source.      ALIEN BIOMASS          8 (demo end)  [PART]
+         Locked until mid-game.
+ E       Structure. Scale shift;     Asteroid Base /        15+           [TODO]
+         "bigger than you were       MEGASTRUCTURE
+         told".
+ F       Beneath. The facility was   Crystal Cave           20 (final)    [TODO]
+         built on top of something.
+
+PER-SECTOR BUILD TEMPLATE (use every time)
+   1. Sub-level L_Sector_<X> (or section of the map) + BP_SectorVolume.
+   2. Blockout with kit pieces; verify the 15 m sight-line rule.
+   3. Place 3-6 BP_Fixture (tagged) with RowOrder/FixtureTag matching
+      DT_Checklist.
+   4. Place 1-3 BP_GrowthNode where the kit allows hero meshes.
+   5. Place airlocks (AirlockId) + arrival points; add DT_Route rows.
+   6. Lighting per 5.12; PPV + DA_Sector; room tone per 5.11.
+   7. Anomaly sockets: tag props for Absence/Displacement/Light/Shadow.
+   8. Fall catchers (BP_CanalRescue-like) + respawn point.
+   9. Regression R1-R6 (section 10) must pass before merging.
+   10. Performance capture (section 8).
+
+SECTOR A (to build)  Start room: bed/table/terminal dock, lived-in props.
+   Fixtures: 2 (e.g., A-01 LOCKER STATUS, A-02 AIR HANDLER). Safe-room sound
+   (warm hum). It is also where shifts "close": place the route-end trigger
+   here (fixes D4).
+SECTOR B (finish)  Add windows with exterior snow/blizzard (exterior is a
+   backdrop plane or a Niagara system, no real geometry). B-01..B-03 exist.
+SECTOR C (finish)  Currently the testbed. Keep the 5 fixtures. Tighten sight-
+   lines, add decals, fix the bright green start (light colours/intensities).
+SECTOR D (build)  Corridor + chamber; the C-06 fixture; the three spoken
+   beats; strongest grade (bias -1.6, desat 0.55). Biomass hero meshes grow
+   visibly between rounds before the ending.
+SECTOR E/F  After demo. Reuse the template; E needs verticality and scale;
+   F is a cave: Nanite rock kit + crystal emissive (careful with Lumen cost).
+
+
+================================================================================
+7. ROUND-BY-ROUND PROGRESSION TABLE
+================================================================================
+(Derived from DESIGN.md section 6 and TEST_ME.md.)
+ Round  Sectors  Rows  Anomaly budget  Types allowed          Notes
+ 1      A,B,C    3-4   0               -                      Baseline; teach
+                                                              route + checklist.
+ 2      A,B,C    5-6   1               Absence                First anomaly,
+                                                              small and deniable.
+ 3-4    A,B,C    6-8   1               Absence, Light         Doubt memory.
+ 5-7    A,B,C    8     1-2             +Growth                Phantom row C-06
+                                                              appears (round 5).
+ 8      +D       9     2               +Geometry              Close on 8 =>
+                                                              Sector D access;
+                                                              DEMO ENDS HERE.
+ 9-14   A-D      9-11  2-3             +Checklist corruption, Route mutates,
+                                        +Repetition            new rooms.
+ 15+    A-F      12+   3-5             all + route breaks     "The facility IS the
+                                                              growth." Harder rule
+                                                              on (route closes).
+ Final  F        -     -               -                      Real ending (open
+                                                              decision, §13).
+Time targets: round 1 ~3 min, rounds 2-7 ~4 min, 8+ ~5 min. 20 rounds ~ 2-3 h.
+
+
+================================================================================
+8. PERFORMANCE BUDGETS
+================================================================================
+ Target: 1080p/60 on a mid-range PC (GTX 1660 Super / RTX 2060 class) for the
+ demo; scalable settings. Measure with `stat unit`, `stat gpu`, Unreal Insights.
+ Budgets per view (guideline):
+   Draw calls (Nanite excluded)   < 3,500
+   Visible local lights w/ shadows < 12
+   Lumen scene cost               keep "Lumen Scene Detail" default; avoid
+                                  thousands of tiny emissive meshes
+   Volumetric fog                 grid pixel size 16-24 for dark scenes
+   Memory                         < 6 GB VRAM at 1080p
+ Known risks (DESIGN.md §13): Nanite + many local lights + volumetric fog in
+ enclosed spaces. Dark scenes are not automatically cheap.
+ ACTIONS
+   - L_SectorC has ~3,900 actors (3,692 static meshes): group/merge repeated
+     kit pieces; use ISM/HISM or Packed Level Actors for modular runs.
+   - Set cull distances; use distance culling volumes in long corridors.
+   - Streaming sub-levels per sector beyond A-C (section 5.7).
+   - Keep the scalability groups: Low/Med/High/Epic with fog and VSM tiers.
+   - Profile every sector with the capture checklist in section 10.
+
+================================================================================
+9. BUILD, PACKAGING, STEAM
+================================================================================
+ PACKAGING (Windows Shipping)
+   1. Project Settings > Packaging: Build Configuration Shipping; Use Pak File
+      on; "Use IoStore"; include Maps: /Game/Substrate/Maps/L_SectorC and any
+      sector sub-levels; Default map from section 3.
+   2. Cook content only; exclude Developer/Collections; clean DerivedDataCache.
+   3. Platforms > Windows > Package Project. Output goes to Packaged/Windows.
+   4. Test the exe on a machine without UE (the TEST_ME.md flow).
+   5. Fix cooked-only bugs: soft references, DataTable references, audio
+      compression (convert large .wav to Ogg/Vorbis via Sound Wave settings),
+      streaming levels.
+ DEBUG TOOLS IN SHIPPING: gate PrintString on a debug flag; remove the MCP
+   plugin and toolsets from the shipping build (they are Editor-only already).
+ STEAM
+   1. Steamworks partner account; create the app; app ID.
+   2. Store page LIVE EARLY (DESIGN.md §12): capsule art, screenshots (the kits
+      are beautiful - lean on them), trailer hooking "The checklist has no
+      field for what you're seeing."
+   3. Enable OnlineSubsystemSteam + steam_appid.txt for dev; achievements
+      (round 5, round 10, finished, "noticed 10 anomalies").
+   4. SteamPipe depots; build a beta branch; playtest; Next Fest demo as a
+      marketing asset (not a test build).
+   5. Price $9.99; localization later.
+ GIT / CI
+   Tag releases (v0.1-slice, v0.2-demo). Keep Packaged/Build in .gitignore.
+   Consider Git LFS before sectors D-F land (binary growth).
+
+
+================================================================================
+10. TESTING AND QA STRATEGY
+================================================================================
+10.1 REGRESSION SUITE (run before every merge; can be automated through the
+     MCP harness in _tools/, otherwise by hand)
+   R1  Load: map opens, Load Errors = 0, no ensures in Output Log.
+   R2  Spawn: player at PlayerStart, facing, no clipping.
+   R3  Logging matrix: nominal/degraded/absent x PASS/FLAG/none; nearest wins;
+       out of range; behind player.
+   R4  Gate matrix: nothing logged -> locked; partial -> locked; complete ->
+       teleports; facing correct; no ping-pong; return trip.
+   R5  Shift: not closed / one wrong / all correct -> round, logs, growth
+       re-armed.
+   R6  Growth: advances once per round only while unobserved; never advances
+       when observed; scale ladder correct.
+   R7  Anomaly: budgets per round; seeded determinism; reverts; cooldowns.
+   R8  Persistence: quit mid-shift; reload identical.
+   R9  Transition: fade timing; stream load; save during transition rejected.
+   R10 Performance: per-sector capture within budgets (section 8).
+10.2 WHAT AUTOMATION CAN AND CANNOT DO (learned)
+   Can: start/stop PIE, read/write actor properties, teleport the player,
+        read logs, compile Blueprints, save assets.
+   Cannot: send real keyboard input to the game viewport; screenshot when the
+        editor window is hidden. => keep one manual "real input" pass (R3-key).
+10.3 PLAYTEST PLAN
+   - Internal: vertical slice 10 sessions; record where testers look/log.
+   - Metrics to log (anonymous, local file): per round time, rows logged,
+     wrong logs, anomalies noticed (>=1.5 s dwell), quit points.
+   - Success: >= 70% of testers report at least one "wait, where is it?"
+     moment in the first 20 minutes (gate verdict language).
+10.4 BUG TRIAGE
+   P0 crash/save loss; P1 progression blocker; P2 visual; P3 polish. No P0/P1
+   open at milestone sign-off.
+10.5 COMMON FAILURE MODES FOUND IN THIS PROJECT
+   - Saving the map with broken references (never do it).
+   - Switching git branches with the editor open (file locks).
+   - Unsaved in-memory edits lost on "Don't Save".
+   - DSL/Blueprint loops with computed values inside For Each: move the math
+     into a small function called on the cast object.
+
+
+================================================================================
+11. MILESTONES, TASKS, ACCEPTANCE CRITERIA
+================================================================================
+Estimates are single-developer working days (DESIGN.md: slice 2-3 weeks, demo
+~2 months, release ~6 months).
+
+M0  STABILIZE (now)                                                ~3-4 days
+   T0.1 Verify E/Q with real keys in a play session (D7).
+   T0.2 [DONE] On-screen feedback for logging (PrintString; widget later) (D3).
+   T0.3 [DONE] Tag GrowthNode_Transit "Growth"; GrowthScales match stages (D1).
+   T0.4 [DONE] Shift close rows-based, excludes C-06 until Sector D (D2).
+   T0.5 [REVIEWED] Route-end trigger placement is intentional (D4).
+   T0.6 Final brightness pass for the start and Transit (D6).
+   T0.7 Merge PR #2; commit IMPLEMENTATION_GUIDE.txt and this plan.
+   ACCEPT  Full loop playable start->log 5->airlock->log 3->return->close->R2
+           with clear feedback; regression R1-R6 pass.
+
+M1  VERTICAL SLICE: Sectors A+B, 3 rounds, 5 anomalies        ~2-3 weeks
+   T1.1 [DONE core 2026-10-12] BP_AnomalyDirector + BP_AnomalySocket +
+        budgets/weights (5.6). No BPI_Anomalous/DT (tooling limits).
+   T1.2 [PARTIAL 2026-10-12] Absence, Light, Growth, Displacement done;
+        Shadow, Addition, Geometry, Audio, Checklist, Repetition remain.
+   T1.3 DT_Route + data-driven BP_Airlock + fade (5.7).
+   T1.4 [DONE v1 2026-10-13] Terminal UI v1 (5.9) - diegetic camera-attached
+        widget, two-column checklist, live updates, F to raise (TERMINAL_SYSTEM.md).
+        Open in it: hold-to-raise, sounds, per-row states, the handheld mesh.
+   T1.5 Sector A blockout + lighting; relocate shift close to A.
+   T1.6 Persistence v1 (5.8).
+   T1.7 Footsteps by surface + terminal sounds (placeholder room tone OK).
+   ACCEPT  Gate: the slice is unsettling with PLACEHOLDER audio. 70% testers
+           report a "wait, where is it?" moment (section 10.3).
+
+M2  STEAM DEMO: Sectors A-C, 8 rounds, full audio+lighting     ~2 months
+   T2.1 Remaining anomalies: Addition, Geometry, Checklist, Repetition.
+   T2.2 Full audio pass (room tone per sector, anomaly audio).
+   T2.3 Full lighting pass on A-C (5.12).
+   T2.4 Sector D corridor + ending sequence (5.14).
+   T2.5 Menu, pause, settings, save slot UX.
+   T2.6 Packaging, Steam page live, performance pass (sections 8, 9).
+   T2.7 Playtest rounds and tuning of DT_RoundBands/anomaly weights.
+   ACCEPT  Packaged exe plays start to ending without a P0/P1; 60 fps target
+           met on the reference spec; audio blind test passes (5.11).
+
+M3  FULL CONTENT: Sectors D-F, ~20 rounds                      ~3 months
+   T3.1 Streaming sub-levels per sector (5.7).
+   T3.2 Sector D full, E, F build using the template (section 6).
+   T3.3 Harder rule + route mutation + remaining rounds 9-20.
+   T3.4 Real ending (decision §13).
+   ACCEPT  2-3 hours of content; all ten anomaly types shipping; no
+           soft-locks in route mutation.
+
+M4  RELEASE                                                    ~1 month
+   T4.1 Polish, accessibility (subtitles, brightness, remap).
+   T4.2 Achievements, cloud saves.
+   T4.3 Trailer, capsule art, wishlist push; day-one patch plan.
+   ACCEPT  Release candidate signed off on clean machines; store page ready.
+
+DEPENDENCY ORDER
+   M0 -> (T1.1,T1.3) -> T1.4 -> T1.5 -> M1 gate -> M2 -> M3 -> M4.
+   Audio and lighting passes can run in parallel to system work after M1.
+
+
+================================================================================
+12. RISK REGISTER
+================================================================================
+ ID  Risk                                   Likelihood Impact  Mitigation
+ R1  Audio quality is the single point of   High       High    Budget a library
+     failure                                                   or hire out; blind
+                                                               test early (5.11).
+ R2  Kits fight the horror tone (bright     High       Med     Lighting protocol
+     cinematic)                                                5.12; exposure
+                                                               first; per-sector PPV.
+ R3  Rounds 1-2 churn                       Med        High    Short round 1; land
+                                                               first anomaly in 2.
+ R4  Performance: Nanite+lights+volumetric  Med        High    Budgets, profiling
+     fog in enclosed spaces                                    per sector, streaming.
+ R5  Scope: two projects share systems      Med        Med     Build BPC_Observer,
+     (Inspection Station)                                      BPI_Loggable generic.
+ R6  Binary asset merge conflicts           Med        Med     Branch discipline,
+                                                               one asset one owner.
+ R7  Lost-asset recurrence                  Low        High    Frequent commits,
+                                                               push, LFS, backups.
+ R8  Anomalies unfair (not perceivable)     Med        High    Fairness rules
+                                                               5.6.4; legibility test.
+ R9  Steam visibility (98% < $250)          High       High    Store page early,
+                                                               Discord, Next Fest.
+ R10 Reconstructed logic diverges from      Med        Low     Treat DESIGN.md as
+     the original design                                       source of truth.
+
+
+================================================================================
+13. OPEN DECISIONS (need an owner answer before the related task)
+================================================================================
+ D-ABS   How does a player report an ABSENT fixture? Options: (a) log the empty
+         mount (BP_FixtureMount), (b) a "missing" button on the terminal.
+         Recommendation: (a) - keeps the interaction diegetic.
+ D-PHA   Phantom rows (C-06): can the player FLAG them? Recommendation: the
+         terminal row exists but has no field to log; the shift closes only when
+         all non-phantom rows are right (design: "no field to report it in").
+ D-END   Ending: scripted real ending vs ambiguous loop. DESIGN.md recommends
+         a real ending.
+ D-VOICE Player voiced or silent? Recommendation: silent, terminal text only.
+ D-STAFF Other staff referenced but never seen? Recommendation: yes (absence).
+ D-INPUT Rebind E/Q to Enhanced Input actions IA_Pass/IA_Flag + gamepad?
+ D-SAVE  Single autosave slot vs manual slots? Recommendation: single autosave.
+ D-NAME  Name check "Substrate" on Steam/USPTO.
+ D-STREAM Move to level streaming at M2 or M3? Recommendation: M3, after A-C.
+ D-AUDIO Buy a library vs commission. Needs budget.
+
+
+================================================================================
+14. APPENDIX - PSEUDOCODE LIBRARY AND NODE CHEAT-SHEET
+================================================================================
+14.1 StartShift (target)
+   CurrentRound += 1
+   ShiftOpen = true
+   RevertAnomalies(EndOfShift)
+   ResetAllFixtureLogs()
+   Director.RollAnomalies(CurrentRound, Seed)
+   Checklist = GenerateChecklist(CurrentRound)
+   ArmGrowth()
+   Broadcast OnShiftStarted(CurrentRound)
+   AutoSave()
+
+14.2 TryCloseShift (target)
+   if not ShiftOpen: return
+   required = Checklist.rows where not Phantom
+   ok = all(row.fixture.IsLoggedCorrectly for row in required)
+   if ok:
+       UnreportedCount = max(0, UnreportedCount - 1)
+       Broadcast OnShiftClosed(true)
+       if CurrentRound >= EndRound and EndCondition: Ending()
+       else: StartShift()
+   else:
+       UnreportedCount += count(applied anomalies not FLAGged)
+       ArmGrowth()
+       Broadcast OnShiftClosed(false)
+
+14.3 Airlock.OnBeginOverlap (target)
+   if Disarmed or not IsPlayer(other): return
+   link = Route.FindFrom(AirlockId)
+   if not Route.IsAvailable(link, CurrentRound): Hud("No access"); return
+   missing = link.RequiredRows.filter(not logged correct)
+   if missing.length > 0: Hud("Locked - " + missing.length + " remaining"); return
+   BeginTransition(link)
+
+14.4 Director.ChooseAnomaly (weighted pick)
+   total = sum(w(a) for a in pool)
+   r = RandomFloat(0, total)
+   for a in pool: r -= w(a); if r <= 0: return a
+
+14.5 Blueprint patterns that worked
+   - Keep For Each bodies tiny: Cast -> call a function on the cast object.
+   - Prefer functions with clear inputs/outputs over big event graphs.
+   - Timers via "Set Timer by Function Name" with Looping.
+   - Use "Get All Actors With Tag" once and cache in BeginPlay.
+   - Never edit the recovered BP_FirstPersonCharacter; subclass it.
+
+14.6 Console commands for tuning
+   stat fps | stat unit | stat gpu | r.ScreenPercentage 75
+   r.Lumen.DiffuseIndirect.Allow 0   (isolate Lumen cost)
+   r.VolumetricFog 0                 (isolate fog cost)
+   r.Shadow.Virtual.Enable 0         (isolate VSM cost)
+   showflag.postprocessing 0         (see the scene without the grade)
+   viewmode lit/unlit/lightingonly   (separate light from albedo)
+
+14.7 Where things are in the repo
+   DESIGN.md                   design intent (source of truth)
+   TEST_ME.md                  demo test notes
+   IMPLEMENTATION_GUIDE.txt    exact build of what exists
+   TECHNICAL_PLAN.txt          this file
+   BLUEPRINT_RECOVERY.md       recovery notes
+   MISSING_ASSETS.txt          asset list from the map (historical)
+   ANOMALY_SYSTEM.md           anomaly system: authoring + tooling notes
+   TERMINAL_SYSTEM.md          terminal: pieces, tuning, verification, deviations
+   _tools/                     MCP helper scripts
+
+================================================================================
+END OF TECHNICAL PLAN
+================================================================================
