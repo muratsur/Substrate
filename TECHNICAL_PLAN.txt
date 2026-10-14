@@ -94,6 +94,11 @@ BUILT (see IMPLEMENTATION_GUIDE.txt sections 5-6 for exact graphs)
   [DONE]    BP_RoundManager   round counter, StartShift, TryCloseShift,
                               ArmGrowth, LogLookedAtFixture (E/Q)
   [DONE]    BP_Airlock        gated teleport pair, facing fix, disarm
+  [PARTIAL] BP_AnomalyDirector 4 of 10 anomaly types (Absence, Light,
+                              Growth, Displacement), round-band budgets,
+                              round-2 guarantee, revert. 5 sites in
+                              L_SectorC. See ANOMALY_SYSTEM.md
+  [PARTIAL] BP_AnomalySocket   one placed actor per anomaly site
   [PARTIAL] BP_CanalRescue    recovered; catch volume only
   [PARTIAL] Level L_SectorC   Sector C (sewer) + Transit corridor + Sector D
                               grade volume; no Sector A/E/F
@@ -103,10 +108,10 @@ BUILT (see IMPLEMENTATION_GUIDE.txt sections 5-6 for exact graphs)
   [LOST]    Originals: BP graph logic, defaults, MI tints, Content/Substrate/UI,
             other maps, terminal UI, most Core Blueprints.
 
-MISSING SYSTEMS (all of section 5 marked [TODO])
-  anomaly director, terminal UI, persistence, feedback text, audio system,
-  transition fade, sector data-driven route, Sectors A/D/E/F content,
-  demo ending, packaging/Steam integration.
+MISSING SYSTEMS (5.6's anomaly core and 5.9's terminal now exist - see
+ANOMALY_SYSTEM.md and TERMINAL_SYSTEM.md)
+  persistence, audio system, transition fade, sector data-driven route,
+  Sectors A/D/E/F content, demo ending, packaging/Steam integration.
 
 KNOWN DEFECTS (milestone M0, section 11)
   D1  [FIXED 2026-10-12] GrowthNode_Transit lacked the "Growth" tag; scales now
@@ -118,7 +123,17 @@ KNOWN DEFECTS (milestone M0, section 11)
       matches the layout (the shift closes where you start); left as is.
   D5  Airlock destination = "the other airlock" (breaks with a 3rd sector).
   D6  Level still too bright in places; exposure bias -1.5 is a first pass.
-  D7  Real key presses E/Q not verified in an actual play session.
+  D7  Real key presses E/Q not verified in an actual play session. Raised by the
+      terminal: F (raise/stow) is in the same boat - automation cannot send
+      keyboard input, so both need one real play pass.
+  D8  [NEW 2026-10-13] The terminal's world-space widget has never been seen.
+      Automation cannot screenshot the game, and world-space widgets do not render
+      in the editor viewport, so its size, legibility and facing are unverified.
+      It receives the checklist correctly (verified from the log). If the text
+      reads mirrored in game, set ScreenYaw to 0 on Terminal_01.
+  D9  [NEW 2026-10-13] The terminal is a placeholder slab (no SM_Terminal asset)
+      and has no sounds; rows carry no state beyond their [ ]/[PASS]/[FLAG]
+      marker (no greyed locked-sector rows). See TERMINAL_SYSTEM.md deviations.
 
 
 ================================================================================
@@ -186,15 +201,18 @@ KNOWN DEFECTS (milestone M0, section 11)
     BP_SubstrateGameInstance   persists across level loads; save slot name;
                                settings; current round cache            [TODO]
     BP_RoundManager            flow + route + checklist                 [DONE+]
-    BP_AnomalyDirector         rolls and applies anomalies per round    [TODO]
+    BP_AnomalyDirector         rolls and applies anomalies per round    [PARTIAL]
     BP_Fixture                 checklist item                           [DONE]
     BP_GrowthNode              biomass                                  [DONE]
     BP_Airlock                 sector link                              [DONE]
     BP_SectorVolume            marks a sector's bounds; owns PPV/audio/
                                fog switching, streaming hints           [TODO]
-    BP_Anomaly_Base (+ children) one class per anomaly type             [TODO]
+    BP_AnomalySocket           one placed site per anomaly (not a class
+                               per type - see ANOMALY_SYSTEM.md)        [PARTIAL]
     BPC_Observer (component)   "is this actor in view" + dwell time     [TODO]
-    BPI_Anomalous (interface)  Apply(Params) / Revert()                 [TODO]
+    BPI_Anomalous (interface)  Apply(Params) / Revert()  NOT CREATABLE
+                               with the editor toolset; dispatch is by
+                               type code inside BP_AnomalySocket        [TODO]
     BPI_Loggable (interface)   Log(Result) / IsCorrect() - lets non-fixture
                                props appear on the checklist            [TODO]
   Data (Content/Substrate/Data)
@@ -451,7 +469,13 @@ ADDITIONS [TODO]
    - Audio: a faint cue when growth advances out of sight (optional).
 
 --------------------------------------------------------------------------------
-5.6 ANOMALY SYSTEM                      owner: BP_AnomalyDirector   [TODO]
+5.6 ANOMALY SYSTEM                      owner: BP_AnomalyDirector   [PARTIAL]
+    BUILT 2026-10-12: budgets per round band, weighted type pick, threshold
+    dispatch in BP_AnomalySocket for Absence/Light/Growth/Displacement,
+    revert at the next StartShift, round-2 single-Absence guarantee, and
+    on-screen feedback. Data lives on the placed sockets, not in DT/DA
+    assets (the editor toolset cannot create structs/enums/DataTables).
+    Verified in PIE for rounds 1-3. Full write-up: ANOMALY_SYSTEM.md.
 --------------------------------------------------------------------------------
 PURPOSE   The scare engine. Each round, choose and apply a small set of state
           changes the player can notice and must report.
@@ -599,7 +623,11 @@ TEST    Quit mid-shift -> relaunch: round, logs, fixture states, growth stage
         identical. Corrupt/missing save -> clean new game.
 
 --------------------------------------------------------------------------------
-5.9 TERMINAL UI (diegetic)                    owner: WBP_Terminal   [TODO]
+5.9 TERMINAL UI (diegetic)        owner: WBP_Terminal   [DONE v1 2026-10-13]
+  Built: WBP_Terminal + BP_Terminal (attached to the camera, F to raise/stow) +
+  BP_RoundManager.RefreshTerminal/FindTerminal/AddRowIfMatch/PushTerminal.
+  Verified in PIE: 8 rows in RowOrder, one marker each, footer BLOCKED -> READY.
+  Full write-up, deviations and tuning table: TERMINAL_SYSTEM.md.
 --------------------------------------------------------------------------------
 PURPOSE   The checklist as an object in the world; the horror is its refusal to
           list what you can see.
@@ -924,10 +952,14 @@ M0  STABILIZE (now)                                                ~3-4 days
            with clear feedback; regression R1-R6 pass.
 
 M1  VERTICAL SLICE: Sectors A+B, 3 rounds, 5 anomalies        ~2-3 weeks
-   T1.1 BP_AnomalyDirector + BPI_Anomalous + DT_RoundBands (5.6).
-   T1.2 Anomaly types: Absence, Light, Growth, Displacement, Shadow.
+   T1.1 [DONE core 2026-10-12] BP_AnomalyDirector + BP_AnomalySocket +
+        budgets/weights (5.6). No BPI_Anomalous/DT (tooling limits).
+   T1.2 [PARTIAL 2026-10-12] Absence, Light, Growth, Displacement done;
+        Shadow, Addition, Geometry, Audio, Checklist, Repetition remain.
    T1.3 DT_Route + data-driven BP_Airlock + fade (5.7).
-   T1.4 Terminal UI v1 (5.9).
+   T1.4 [DONE v1 2026-10-13] Terminal UI v1 (5.9) - diegetic camera-attached
+        widget, two-column checklist, live updates, F to raise (TERMINAL_SYSTEM.md).
+        Open in it: hold-to-raise, sounds, per-row states, the handheld mesh.
    T1.5 Sector A blockout + lighting; relocate shift close to A.
    T1.6 Persistence v1 (5.8).
    T1.7 Footsteps by surface + terminal sounds (placeholder room tone OK).
@@ -1075,6 +1107,8 @@ DEPENDENCY ORDER
    TECHNICAL_PLAN.txt          this file
    BLUEPRINT_RECOVERY.md       recovery notes
    MISSING_ASSETS.txt          asset list from the map (historical)
+   ANOMALY_SYSTEM.md           anomaly system: authoring + tooling notes
+   TERMINAL_SYSTEM.md          terminal: pieces, tuning, verification, deviations
    _tools/                     MCP helper scripts
 
 ================================================================================

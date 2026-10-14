@@ -51,3 +51,7 @@ build_log*.txt
 
 # Source audio copies the editor tracks for auto-reimport; the .uasset is what is versioned
 /Content/Substrate/Audio/*.wav
+
+# python helper scripts (_tools)
+__pycache__/
+*.pyc
