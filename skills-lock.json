@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "code-simplifier": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/code-simplifier/SKILL.md",
+      "computedHash": "fbbc15d42631a5946d4006012421acfa33686a0ce1481d7925bbea0725273ef9"
+    },
+    "python-performance-optimization": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/python-performance-optimization/SKILL.md",
+      "computedHash": "19f4d97c641fa66361023a2abc0da356bbb2a9d74896de31ee41bea2bd227e38"
+    }
+  }
+}
