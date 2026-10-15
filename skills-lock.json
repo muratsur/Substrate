@@ -1,6 +1,18 @@
 {
   "version": 1,
   "skills": {
+    "2d-games": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/agentic-bundle-indie-game-dev/skills/2d-games/SKILL.md",
+      "computedHash": "f07cf7df379c775be87b4cccc29700cd5785bc31e6e1df3046a79d8e47d5698b"
+    },
+    "3d-games": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "plugins/agentic-bundle-indie-game-dev/skills/3d-games/SKILL.md",
+      "computedHash": "e8f5caf49b834575bcb70b0c3afa3421470286125b2671c82b4d45a38836de6e"
+    },
     "code-simplifier": {
       "source": "sickn33/antigravity-awesome-skills",
       "sourceType": "github",
