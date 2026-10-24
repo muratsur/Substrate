@@ -1,5 +1,5 @@
-"""Package a Windows Shipping build and record build provenance.
-Usage: python _tools/package_shipping.py <BuildName> [--skip-preflight]
+"""Package a Windows Shipping (or --development) build and record build provenance.
+Usage: python _tools/package_shipping.py <BuildName> [--skip-preflight] [--development]
 Runs _tools/preflight_collision.py first (editor must be open) and refuses to package if it fails."""
 import subprocess
 import sys
@@ -12,6 +12,8 @@ from pathlib import Path
 if len(sys.argv) < 2 or sys.argv[1].startswith('-'):
     sys.exit(__doc__)
 NAME = sys.argv[1]
+CONFIG = 'Development' if '--development' in sys.argv else 'Shipping'
+EXE_SUFFIX = '' if CONFIG == 'Development' else '-Win64-Shipping'
 if '--skip-preflight' not in sys.argv and subprocess.call([sys.executable, str(Path(__file__).with_name('preflight_collision.py'))]) != 0:
     sys.exit('preflight_collision failed: fix the listed actors (or pass --skip-preflight) before packaging')
 
@@ -38,7 +40,8 @@ cmd = [
     f"-project={UPROJ}",
     "-noP4",
     "-platform=Win64",
-    "-clientconfig=Shipping",
+    f"-clientconfig={CONFIG}",
+    *(["-nocompileeditor"] if CONFIG == "Development" else []),  # editor is open; Live Coding blocks rebuilding it
     "-build",
     "-cook",
     "-stage",
@@ -117,8 +120,8 @@ def compute_sha256(filepath):
     return h.hexdigest()
 
 launcher_exe = ARCHIVE_DIR / "Substrate.exe"
-game_exe_hybrid = ARCHIVE_DIR / "Substrate" / "Binaries" / "Win64" / "Substrate-Win64-Shipping.exe"
-game_exe_content = ARCHIVE_DIR / "Engine" / "Binaries" / "Win64" / "UnrealGame-Win64-Shipping.exe"
+game_exe_hybrid = ARCHIVE_DIR / "Substrate" / "Binaries" / "Win64" / f"Substrate{EXE_SUFFIX}.exe"
+game_exe_content = ARCHIVE_DIR / "Engine" / "Binaries" / "Win64" / f"UnrealGame{EXE_SUFFIX}.exe"
 game_exe = game_exe_hybrid if game_exe_hybrid.exists() else game_exe_content
 paks_dir = ARCHIVE_DIR / "Substrate" / "Content" / "Paks"
 
