@@ -16,6 +16,10 @@
 			"Enabled": false
 		},
 		{
+			"Name": "HoudiniEngine",
+			"Enabled": false
+		},
+		{
 			"Name": "ModelContextProtocol",
 			"Enabled": true,
 			"TargetAllowList": [
