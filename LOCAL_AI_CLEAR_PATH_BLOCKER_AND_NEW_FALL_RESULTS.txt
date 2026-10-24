@@ -1,0 +1,262 @@
+===============================================================================
+SUBSTRATE - CLEAR-PATH BLOCKER AND NEW FALL LOCATION: REPAIR & VERIFICATION
+Date: 2026-10-19
+Workspace: D:\Projects\Substrate
+Candidate Package: Packaged/Windows_UserFallsFixed_20261019_235720/Substrate.exe
+Map: /Game/Substrate/Maps/L_SectorC
+===============================================================================
+
+1. USER OBSERVATIONS & SCENE IDENTIFICATION
+-------------------------------------------------------------------------------
+User Reported Defects:
+  1. Clear-Path Blocker: Cannot walk forward on apparently clear floor toward
+     red-lit stairs. User clarification: "there is nothing front of me".
+     Reference Images:
+       - C:\Users\Murat\Pictures\Screenshots\Screenshot 2026-10-19 201226.png
+       - C:\Users\Murat\AppData\Local\Temp\codex-clipboard-1e850cf1-d1c6-41d1-8188-36e4730d3ba2.png
+  2. New Fall Location: Camera beneath concrete geometry near metal stairs.
+     Reference Image:
+       - C:\Users\Murat\Pictures\Screenshots\Screenshot 2026-10-19 212546.png
+
+Identified Actual Scenes:
+  - Blocker Scene:
+    East Bank corridor approaching red-lit stairs StaticMeshActor_3305 (SM_stairs_03)
+    at Y = 8250..8380. Character is heading North (+Y) from Y ~ 8150 on dry floor
+    slabs StaticMeshActor_2741 (SM_detail_Cube_016). Camera yaw is ~90 degrees,
+    facing North toward the illuminated stair flight and red fixture glow.
+  - Fall Scene:
+    Upper metal walkway & concrete rubble barricade at Y = 10650..10900 above the
+    canal, adjacent to metal stairs StaticMeshActor_2592 (SM_stairs_03) and walkway
+    platform StaticMeshActor_3639 (SM_platform_03). Camera viewpoint in the aftermath
+    screenshot is at (500..600, 10700..10800, 250..350) looking up from inside the
+    sub-floor canal cavity at overhead concrete blocks (SM_concrete_01), support pillar
+    (SM_pillar), metal stairs, and red wall light (BP_Light_C_24/25).
+
+Preservation of Prior Repairs:
+  - Spawn dock foundation and shift trigger: UNTOUCHED & PRESERVED.
+  - Stone bridge crossing (StaticMeshActor_3643, stepping stones 2700, 2713, 3111, 3115): UNTOUCHED & PRESERVED.
+  - All 28 previously solidified floor slabs (West Landing & East Bank): UNTOUCHED & PRESERVED.
+  - Baseline packages and previous saves: INTACT.
+
+-------------------------------------------------------------------------------
+2. ROOT CAUSE INVESTIGATION & DIAGNOSTIC REPRODUCTION
+-------------------------------------------------------------------------------
+DEFECT 1: Clear-Path Blocker Approaching Red-Lit Stairs
+  - Diagnostic Sweeps & Player Movement:
+    Player at pos=(-1750.0, 8150.0, 378.0), facing North (Yaw=90.0°), attempting
+    to walk North (+Y) toward the stairs.
+  - Blocking Hit Contact:
+    * Hit Actor:     StaticMeshActor_3691 (CanalBed_Safety)
+    * Hit Component: StaticMeshComponent0
+    * Owning Level:  /Game/Substrate/Maps/L_SectorC
+    * Collision Profile: BlockAll (Pawn response: Block)
+    * Collision Shape: Simple Box Collision
+    * Pre-repair Transform:
+        RelativeLocation = (585.0, 6900.0, 310.0)
+        RelativeScale3D  = (41.7, 38.0, 0.4)
+    * Computed Bounds:
+        X: [-1500.0 .. 2670.0], Y: [5000.0 .. 8800.0], Z: [290.0 .. 330.0]
+  - Cause Explanation:
+    The corridor floor slabs (StaticMeshActor_2741, etc.) sit at Z = 280..288 cm,
+    spanning X: [-1800 .. -1200]. StaticMeshActor_3691 was intended as an invisible
+    safety barrier over the central canal water (X > 0). However, because its X scale
+    was set to 41.7, its collision volume extended across X = 0 into negative X space
+    all the way to X = -1500.
+    The collision box floated from Z = 290 cm to Z = 330 cm (10 cm above the corridor floor).
+    Because the player capsule base is at Z = 288 cm and the box top was at Z = 330 cm,
+    the vertical step was 42 cm. Since character MaxStepHeight is 45 cm, any player capsule
+    sweep directly struck the front face of this invisible box at Y ~ 8150..8379,
+    completely halting forward movement while the visual floor ahead was entirely clear.
+
+DEFECT 2: Fall Beneath Concrete Geometry Near Metal Stairs
+  - Diagnostic Sweeps & Walking Transition:
+    Starting on the upper walking platform / stairs at pos=(500..700, 10600, 568..622)
+    and moving North (+Y) / East (+X):
+  - Dual Root Causes Identified:
+    1. Concrete Rubble Barricade Has NoCollision:
+       The visual barricade blocking players from walking off the upper walkway consists
+       of concrete blocks StaticMeshActor_2623, 2624, 2625, 2626 (spanning Y: 10651..10934)
+       and southern rubble StaticMeshActor_2643, 2644, 2645, 2646 (at Y: 9831).
+       Although the base mesh SM_concrete_01 possesses valid collision, EVERY ONE of these
+       8 rubble actors had an instance override:
+         BodyInstance.CollisionProfileName = 'NoCollision'
+         BodyInstance.CollisionEnabled     = 'NoCollision'
+       When a player walked into the visual concrete barricade, they passed directly
+       through the rubble as if it were air, stepping off the ledge and plunging into
+       the hollow canal bed cavity below (Z ~ 250..350).
+    2. Unrailed Platform Gap Along Y = 10721:
+       At the edge of metal platform StaticMeshActor_3639 (SM_platform_03) along Y = 10721,
+       the permanent railing StaticMeshActor_3618 only began at X = 899. Between X = 526
+       (concrete barricade) and X = 710, there was a completely unrailed 180 cm wide gap
+       directly overlooking the sub-floor canal cavity.
+
+-------------------------------------------------------------------------------
+3. EXACT SOURCE REPAIRS & ASSET SAVES
+-------------------------------------------------------------------------------
+Asset Backups:
+  - Pre-repair level backed up to: _backups/1792468070_L_SectorC.umap
+    (Size: 16,174,719 bytes, timestamp: 2026-10-19 22:54:30)
+
+Repair 1: Trim CanalBed_Safety Volume Away from Dry Corridor
+  - Target: StaticMeshActor_3691 (CanalBed_Safety)
+    * RelativeLocation: changed from (585.0, 6900.0, 310.0) -> (1335.0, 6900.0, 310.0)
+    * RelativeScale3D:  changed from (41.7, 38.0, 0.4)    -> (26.7, 38.0, 0.4)
+    * New Bounds:       X: [0.0 .. 2670.0], Y: [5000.0 .. 8800.0], Z: [290.0 .. 330.0]
+    * Effect: Central canal water (X > 0) remains 100% protected; dry corridor (X < 0)
+      is completely freed from any invisible collision intrusion.
+  - Hardening Adjacent Safety Volumes:
+    * StaticMeshActor_3780: RelativeLocation=(1500.0, 4800.0, 310.0), RelativeScale3D=(30.0, 10.0, 0.4), Bounds X: [0.0 .. 3000.0]
+    * StaticMeshActor_3781: RelativeLocation=(1200.0, 9300.0, 310.0), RelativeScale3D=(24.0, 10.0, 0.4), Bounds X: [0.0 .. 2400.0]
+    * Neither volume extends into negative X space.
+
+Repair 2: Solidify Concrete Rubble Barricades
+  - Targets (North Barricade at upper stairs):
+    * StaticMeshActor_2623 (SM_concrete_01_1775): CollisionProfileName='BlockAll', CollisionEnabled='QueryAndPhysics'
+    * StaticMeshActor_2624 (SM_concrete_01_1776): CollisionProfileName='BlockAll', CollisionEnabled='QueryAndPhysics'
+    * StaticMeshActor_2625 (SM_concrete_01_1777): CollisionProfileName='BlockAll', CollisionEnabled='QueryAndPhysics'
+    * StaticMeshActor_2626 (SM_concrete_01_1778): CollisionProfileName='BlockAll', CollisionEnabled='QueryAndPhysics'
+  - Targets (South Barricade):
+    * StaticMeshActor_2643 (SM_concrete_01_1795): CollisionProfileName='BlockAll', CollisionEnabled='QueryAndPhysics'
+    * StaticMeshActor_2644 (SM_concrete_01_1796): CollisionProfileName='BlockAll', CollisionEnabled='QueryAndPhysics'
+    * StaticMeshActor_2645 (SM_concrete_01_1797): CollisionProfileName='BlockAll', CollisionEnabled='QueryAndPhysics'
+    * StaticMeshActor_2646 (SM_concrete_01_1798): CollisionProfileName='BlockAll', CollisionEnabled='QueryAndPhysics'
+
+Repair 3: Close Upper Platform Gap With Permanent Railings
+  - Added two permanent SM_fence_01 railing actors to /Game/Substrate/Maps/L_SectorC:
+    * StaticMeshActor_3801:
+        Mesh: /Game/Substrate/Environment/Meshes/SM_fence_01
+        Location: (769.0, 10721.0, 435.0), Rotation: (0.0, 0.0, 0.0), Scale: (1.0, 1.0, 1.0)
+        CollisionProfileName: 'BlockAll', CollisionEnabled: 'QueryAndPhysics'
+    * StaticMeshActor_3802:
+        Mesh: /Game/Substrate/Environment/Meshes/SM_fence_01
+        Location: (639.0, 10721.0, 435.0), Rotation: (0.0, 0.0, 0.0), Scale: (1.0, 1.0, 1.0)
+        CollisionProfileName: 'BlockAll', CollisionEnabled: 'QueryAndPhysics'
+    * Seamlessly connects existing railing StaticMeshActor_3618 (X=899) across pillar
+      StaticMeshActor_2650 (X=601) to solid concrete barricade StaticMeshActor_2626 (X=526).
+
+Persistence Verification:
+  - Saved Asset: Content/Substrate/Maps/L_SectorC.umap
+  - Write timestamp: 2026-10-19 23:36:20
+  - File size: 16,198,035 bytes
+  - Read-back confirmation: verified all bounds, collision profiles, and actor transforms.
+
+-------------------------------------------------------------------------------
+4. IN-EDITOR / PIE VERIFICATION RESULTS
+-------------------------------------------------------------------------------
+Suite 1: Red-Lit Stairs Corridor Traversal (_tools/verify_both_fixes_pie.py)
+  +-------------------------------------+---------------+---------------+------------+--------+
+  | Test Case                           | Start Pos     | Final Pos     | Min Z (cm) | Result |
+  +-------------------------------------+---------------+---------------+------------+--------+
+  | North Walk Toward & Up Red Stairs   | (-1750, 8150) | (-1750, 10517)| 378.0      | PASS   |
+  | South Walk Down & Past Red Stairs   | (-1750, 10154)| (-1750, 8174) | 378.0      | PASS   |
+  +-------------------------------------+---------------+---------------+------------+--------+
+  Details:
+    - North walk traveled 2367.5 cm continuously with full 600 cm/s velocity.
+    - Ascended stair flight from Z = 378.0 cm up to Z = 568.2 cm without interruption.
+    - Zero blocking hits on clear floor; zero rescues.
+
+Suite 2: Upper Metal Walkway & Rubble Barricade Impact (_tools/verify_both_fixes_pie.py)
+  +-------------------------------------+---------------+---------------+------------+--------+
+  | Test Case                           | Start Pos     | Final Pos     | Min Z (cm) | Result |
+  +-------------------------------------+---------------+---------------+------------+--------+
+  | Rubble Barricade Impact (X = 400)   | (400, 10550)  | (400, 10617)  | 568.2      | PASS   |
+  | Rubble Barricade Impact (X = 500)   | (500, 10550)  | (500, 10800)  | 568.2      | PASS   |
+  | Railing Barrier Impact (X = 700)    | (700, 10550)  | (700, 10683)  | 621.9      | PASS   |
+  +-------------------------------------+---------------+---------------+------------+--------+
+  Details:
+    - Concrete rubble cleanly blocked character capsule at Y = 10617.3 and Y = 10800.3.
+    - New railing actors cleanly blocked character capsule at Y = 10682.8.
+    - Minimum Z maintained across all impacts: Z >= 568.2 cm (zero falls, zero cavity drops).
+
+Suite 3: Comprehensive Regression Suite Across All Routes (_tools/verify_all_routes_complete.py)
+  +--------------------------------------------------------+------------+--------+
+  | Route Traversal                                        | Min Z (cm) | Status |
+  +--------------------------------------------------------+------------+--------+
+  | R01: Spawn Dock Platform walk (+Y)                     | 358.5      | PASS   |
+  | R09: West Landing -> South along Corridor to C-03      | 386.0      | PASS   |
+  | R09: Fixture C-03 -> North along Corridor to Landing   | 385.5      | PASS   |
+  | R10: Restored Stone Crossing Westbound (Doorway->Exit) | 378.2      | PASS   |
+  | R10: Restored Stone Crossing Eastbound (Exit->Doorway) | 378.2      | PASS   |
+  | R11: Bridge Landing -> North Corridor to Fixture C-05  | 386.1      | PASS   |
+  | R11: Fixture C-05 -> South Corridor Return to Landing  | 386.4      | PASS   |
+  | R12: East Bank Approach North of Doorway               | 384.5      | PASS   |
+  +--------------------------------------------------------+------------+--------+
+  Result: 8/8 PASS (100%). Zero falls, zero regressions on previously confirmed fixes.
+
+-------------------------------------------------------------------------------
+5. PACKAGED SHIPPING CANDIDATE & BUILD PROVENANCE
+-------------------------------------------------------------------------------
+Build Identity:
+  Candidate ID: Windows_UserFallsFixed_20261019_235720
+  Timestamp:    20261019_235720
+  Build Start:  2026-10-19 23:57:21
+  Build End:    2026-10-20 00:00:26
+  Duration:     3.08 minutes
+  Exit Code:    0 (Success)
+  Warnings:     0
+  Errors:       0
+  Git HEAD:     3dafe29284c6f0dcce40ebbfb0f527331403eb11
+  Archive Dir:  D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_235720
+  UAT Log:      D:\Projects\Substrate\Saved\Logs\package_build_userfallsfixed_20261019_235720.log
+
+Packaged Artifacts & Checksums (SHA-256):
+  - Launcher Executable:
+      Path: D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_235720\Substrate.exe
+      Size: 171,520 bytes
+      SHA-256: c885938ee747343777153db3b196b275c6ef461addd02aba43c5d98434af6da5
+  - Shipping Binary:
+      Path: D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_235720\Substrate\Binaries\Win64\Substrate-Win64-Shipping.exe
+      Size: 165,788,160 bytes
+      SHA-256: 30b9331632c559867a19c05b62c1177da4a2f15f9d177e72bbab2fd201ef3b4e
+  - Pak Container:
+      Path: D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_235720\Substrate\Content\Paks\Substrate-Windows.pak
+      Size: 11,449,973 bytes
+      SHA-256: c64fc4a4d258f2e054f6bf5e20e696b3c9689e117d60d73ef893fa248cfa440e
+  - UCAS Container:
+      Path: D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_235720\Substrate\Content\Paks\Substrate-Windows.ucas
+      Size: 577,530,320 bytes
+      SHA-256: 379fd472d546cd5e84ed5d631adfe5a46eb40857d64e5c3e4f8555013b33f9c4
+  - UTOC Table of Contents:
+      Path: D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_235720\Substrate\Content\Paks\Substrate-Windows.utoc
+      Size: 391,818 bytes
+      SHA-256: 0773f9c07cad9251d0519482a885dce8b4936077a703c3ae100ed26850365c96
+
+Packaged Standalone Smoke Test:
+  Command: python _tools/smoke_test_package.py --exe Packaged/Windows_UserFallsFixed_20261019_235720/Substrate.exe
+  Process Alive:   True (PIDs: [17440, 37180])
+  Error Dialogs:   NONE
+  Unreal Window:   PRESENT (1296x759 rendered viewport)
+  Smoke Test:      PASS
+
+Packaged Route Observation:
+  Status: NOT VERIFIED
+  Reason: Automated standalone smoke test verifies clean execution, asset loading, and 3D rendering.
+  Per project policy, packaged route traversal requires human physical playtest confirmation using
+  the two specific manual checks below.
+
+-------------------------------------------------------------------------------
+6. MANUAL ACCEPTANCE PLAYTEST CHECKLIST FOR USER
+-------------------------------------------------------------------------------
+Target Executable to Launch:
+  D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_235720\Substrate.exe
+
+Manual Check 1: Clear-Path Approach to Red-Lit Stairs (Defect 1 Verification)
+  [ ] 1. Launch Substrate.exe and start a shift.
+  [ ] 2. Travel from the spawn dock toward the East Bank corridor north of the doorway.
+  [ ] 3. Walk North along the concrete floor toward the red-lit stairs (StaticMeshActor_3305).
+  [ ] 4. Confirm you can walk continuously forward through Y = 8150..8380 without hitting an invisible wall.
+  [ ] 5. Ascend the red-lit stairs completely to the upper landing.
+  [ ] 6. Turn around and walk back down the stairs to the corridor floor.
+
+Manual Check 2: Upper Metal Walkway & Rubble Barricade (Defect 2 Verification)
+  [ ] 1. Navigate to the upper walkway and metal stairs area (near StaticMeshActor_2592 / BP_Light_C_24).
+  [ ] 2. Walk directly up to the concrete rubble blocks (StaticMeshActor_2623..2626).
+  [ ] 3. Confirm the concrete rubble is completely solid and blocks movement. You must NOT pass through it.
+  [ ] 4. Walk along the edge of the metal platform toward the railing.
+  [ ] 5. Confirm the railings (StaticMeshActor_3801, 3802) block access to the edge. You must NOT fall into
+         the cavity beneath the concrete geometry.
+
+Sanity Check 3: Baseline Regression Verification
+  [ ] 1. Confirm spawn dock platform and shift trigger remain fully functional (no red screen flash, no dock fall).
+  [ ] 2. Confirm the stone bridge crossing (Route R10) and both West Landing exit turns remain fully functional.
+===============================================================================

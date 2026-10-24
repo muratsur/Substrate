@@ -1,0 +1,50 @@
+SUBSTRATE - WEST BANK FLOOR REPAIR
+Date: 2026-10-21
+
+Scope
+Repaired a reproduced fall after crossing the restored yellow-pipe bridge
+westward, turning left, and continuing along the outer bank.
+The exact camera position of the user's screenshot is not yet matched.
+This is not a claim that all reported falls or all routes are fixed.
+
+Finding
+At X approximately -2400, the outer floor row ended at Y approximately 9631.
+Continuing forward lost floor contact and dropped the character into water.
+The existing inner walkway continues, but requires a sideways adjustment.
+This was an exposed floor termination, not disabled collision on those slabs.
+
+Change
+Added three visible slabs matching StaticMeshActor_3112, with its collision
+settings, at Y offsets 288, 576 and 864 cm. New actors: 3803, 3804, 3805.
+The outer route now continues to the north landing at approximately Y 10494.
+Saved asset: Content/Substrate/Maps/L_SectorC.umap.
+No existing actor was deleted or had its collision disabled.
+Backup: _backups/codex_west_bank_20261021_200451/L_SectorC.umap.
+Detailed changes: Saved/CodexFallInvestigation/west_bank_repair_manifest.json.
+
+Fresh verification
+BEFORE: west_long_before.json = FALL, after leaving the old floor endpoint.
+AFTER: west_long_after.json = PASS on the identical continuous movement route:
+(-1300,8335) -> (-2400,8335) -> (-2400,9400) -> (-2400,10300).
+RETURN: west_return_detour_after.json = PASS through the repaired section,
+then via (-2470,8500), (-2470,8335), and back across the bridge to (-1300,8335).
+The direct return line at X=-2400 snags near Y8453 at the bridge approach;
+using the existing wider landing at X=-2470 passes. That snag was not changed.
+Tests use the real PIE character movement with the existing AutoMove hook,
+one initial placement, then continuous movement. They are not packaged-game
+keyboard playtests. Editor screenshots are diagnostic evidence only.
+
+Candidate to test
+Packaged/Windows_CodexWestBank_20261021_200804/Substrate.exe
+Build completed successfully: UAT exit 0, zero errors and zero warnings.
+Launch this new candidate, not an old shortcut or previous packaged folder.
+Repeat the exact route from your screenshot. Packaged gameplay and exact
+screenshot-route equivalence still require confirmation.
+Build evidence: Saved/Logs/package_build_codexwestbank_20261021_200804.log
+Provenance: Saved/CodexFallInvestigation/provenance_Windows_CodexWestBank_20261021_200804.json
+
+Rollback
+With the editor closed, preserve the current map before restoring the backup
+above. Restoring the full map also discards any later changes to this map.
+For a selective rollback, remove only actors 3803, 3804 and 3805 in the editor,
+then save L_SectorC. Do not run the repair script twice.

@@ -1,0 +1,130 @@
+SUBSTRATE - RESTORE THE STONE CROSSING AND MISSING STAIR
+Date: 2026-10-18
+Workspace: D:\Projects\Substrate
+
+USER-REPORTED FAILURE
+The user says: 'when i step in stones in the blue circled i fall to the water.
+and there use to a stair to cross here'
+Reference image:
+C:\Users\Murat\Pictures\Screenshots\Screenshot 2026-10-18 103753.png
+The scene shows a doorway between brick walls, slabs/stones directly beyond the
+threshold, a canal and opposite ledge, and large overhead pipes.
+
+There are TWO required outcomes:
+1. The intended visible walking surface supports the player without falling
+   through into water.
+2. Restore the missing stair/crossing connection the user remembers here.
+Do not substitute a fix to the earlier metal stair railing. Do not assume an
+actor name or coordinates from earlier reports identify this location.
+
+STATUS AND SCOPE
+This is a targeted handoff. No game assets have been changed by creating it.
+Treat this route as FAIL based on the user's playtest. The cause is not yet
+diagnosed: missing/disabled collision, a gap, moved geometry, streaming state,
+or an unintended rescue/teleport must be distinguished through evidence.
+Preserve the previous Houdini startup repair and east stair entrance repair.
+
+1. IDENTIFY THE EXACT CROSSING
+- Copy the reference image into a unique evidence folder.
+- Match the doorway, overhead pipe arrangement, foreground slabs and far ledge
+  in the current level. Capture a matching view and record world coordinates.
+- Record the actual package under test; if unknown, label it unknown rather than
+  assigning a previous candidate by assumption.
+- Identify each visible slab/floor actor, its mesh and component, transform,
+  bounds, collision profile, Pawn response and collision-enabled state.
+- Inspect map/data-layer/streaming membership and runtime changes where relevant.
+- Mark the route: safe doorway -> first slab -> remaining crossing -> stair
+  connection -> destination ledge. Determine whether the missing stair spans
+  the canal or connects different elevations from actual historical evidence.
+
+2. REPRODUCE AND LOCATE THE LOSS OF SUPPORT
+- Use the normal character capsule and movement settings, starting on safe floor.
+- Walk onto the circled surface with normal movement input; log position,
+  movement mode, floor result, hit actor/component and any rescue event.
+- Distinguish a physical fall from a rescue volume relocating the player.
+- Trace/sweep across slab centers, seams, threshold and edges using collision
+  queries matching the character. A visibility trace alone is not sufficient.
+- Inspect simple collision geometry and Pawn blocking on the placed components.
+  Check whether a broad collision override was applied by earlier repair scripts.
+- Document the exact first unsupported point and its responsible component/gap.
+
+3. FIND WHAT HAPPENED TO THE ORIGINAL STAIR
+- Compare the matched region with existing backups, version-control history,
+  source kit map and previous placement/removal scripts. Use copies or a separate
+  inspection map; never restore an entire older level over current user work.
+- Historical clue only: FREE_ROAM_SESSION_LOG.md mentions meshes parked offstage,
+  including StaticMeshActor_3643 (SM_double_bridge) and StaticMeshActor_2678
+  (SM_entrance). Inspect whether either is actually related to this crossing;
+  do not move them back based on their names alone.
+- Search for hidden, displaced, deleted or unstreamed stair/bridge instances.
+  Compare transforms and neighboring geometry to the screenshot.
+- If the original connection is identified, restore only its relevant instance
+  and dependencies after checking why it was removed or parked.
+- If it cannot be identified, document that fact and construct a matching local
+  stair/crossing using existing kit pieces to reconnect the observed endpoints.
+  Do not claim a newly constructed replacement is the recovered original.
+
+4. APPLY A LOCAL REPAIR
+- Back up the current map and any assets requiring changes. Preserve dirty work.
+- Stop PIE before persistent edits. Work through Unreal APIs/editor for binaries.
+- Restore suitable collision on intended walkable slabs, or repair their local
+  floor support so collision aligns with the visible walking surface.
+- If stones are decorative rubble, use a properly fitted structural walking
+  surface beneath them rather than relying on unstable tiny collision pieces.
+- Prefer instance-local changes or a duplicated mesh when a shared kit asset
+  would otherwise change unrelated parts of the level.
+- Restore the stair/crossing with a continuous floor, sensible tread/riser heights,
+  capsule clearance, adequate headroom under pipes and protection at actual drops.
+- Do not blanket-fill the canal, create an invisible bridge across open water,
+  disable gravity/collision, enlarge global step height or teleport past the gap.
+- Keep rescue volumes for intentional deep falls; trim misplaced overlap only
+  if it is demonstrated to interrupt the intended walking route.
+- Save affected packages and inspect the persisted result in a fresh session.
+
+5. TEST THE COMPLETE CROSSING BOTH WAYS
+- Walk from the safe doorway across every slab and the restored stair to the
+  destination ledge, then return. Do not teleport between checkpoints.
+- Repeat at normal walk/run speeds and with angled approaches at seams and
+  stair ends. Stop briefly on each slab to prove it supports the standing pawn.
+- Confirm continuous floor contact where expected, no water fall, no unwanted
+  rescue, no snag and no obstruction from the restored stair or overhead pipes.
+- Record trajectory, actor contacts and before/after views. Include a video if
+  supported; screenshots alone cannot prove collision or continuous movement.
+- Check nearby legitimate canal fall/recovery still works.
+- Recheck the previously repaired east stair entrance to catch regressions.
+- Add this exact route to tests under a distinct name. Do not reuse a passing
+  route elsewhere as evidence. Show the original failure in a safe test copy
+  and success after repair where practical.
+
+6. PACKAGE AND VERIFY
+- Build into a fresh uniquely named Shipping output folder. Preserve old builds.
+- Record source state, changed assets, build result and candidate identity.
+- Launch the exact candidate, check for startup dialogs, and walk the same
+  screenshot-matched crossing and stair connection in both directions.
+- If packaged input/visual verification cannot run, mark it NOT VERIFIED and
+  provide the new executable for the user's direct test. Never convert a
+  successful cook, live process or PIE-only pass into packaged traversal PASS.
+
+DELIVERABLE: LOCAL_AI_STONE_CROSSING_FIX_RESULTS.txt
+Include:
+1. Location and labeled actors/components for the circled surface and stair.
+2. Observed cause of falling and evidence for the missing stair's history.
+3. Exact changes, backups and whether the stair was restored or replaced.
+4. Matched before/after views showing visible floor and full connecting stair.
+5. Continuous two-way traversal results separately for PIE and Shipping.
+6. Regression checks for the earlier metal stair fix and canal recovery.
+7. New executable path and any unresolved or untested items.
+
+ACCEPTANCE
+The player walks onto the blue-circled stones without falling through them and
+uses a visible stair/crossing to reach the intended destination and return.
+The route remains fixed after saving, restarting and packaging. Preserve the
+appearance and function of the surrounding canal and previous repairs.
+
+COPY-AND-PASTE PROMPT
+Execute D:\Projects\Substrate\LOCAL_AI_RESTORE_STONE_CROSSING_AND_STAIRS.txt.
+Match the new blue-circled screenshot precisely. Diagnose why stepping onto the
+stones drops the player into water and restore the missing stair/crossing here.
+Inspect backups and parked meshes without overwriting the current level. Make
+a local repair, verify the full route both ways, and provide a fresh Shipping
+candidate. Do not claim packaged traversal passed unless actually tested.

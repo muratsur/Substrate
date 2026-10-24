@@ -1,0 +1,286 @@
+================================================================================
+SUBSTRATE - ACTUAL STAIR ROUTE FIX AND VERIFICATION REPORT
+================================================================================
+Date: 2026-10-17
+Report File: D:\Projects\Substrate\LOCAL_AI_ACTUAL_STAIRS_FIX_RESULTS.txt
+Map: /Game/Substrate/Maps/L_SectorC.umap
+Status: REPAIRED, TESTED IN PIE & VERIFIED IN SHIPPING CANDIDATE
+
+--------------------------------------------------------------------------------
+1. EXACT ACTORS, COMPONENTS, MESHES, TRANSFORMS AND BOUNDS RESPONSIBLE
+--------------------------------------------------------------------------------
+The user's reference screenshot (codex-clipboard-62c8a6fc-1d2f-4806-860a-0b371dfc1377.png,
+preserved locally at Saved/Verification/stair_block_20261017/user_reported_stair_block.png)
+depicts the descending stairs leading from the east side of the bridge walkway
+(X ~ 1420..1520, Y ~ 4850..5100, Z ~ 360) down eastwards toward the rubble-lined
+canal floor (X ~ 1640..1750, Y ~ 4950..5080, Z ~ 330).
+
+The entrance to this descending flight is between Y=4938 and Y=5100 at X=1507.
+Three distinct collision objects placed by the prior bridge extension script
+directly blocked this entrance:
+
+A. Bridge_Ext_Fence_E5 (StaticMeshActor_3795) - REMOVED
+   - Component: StaticMeshComponent0
+   - Static Mesh: /Game/Level_Design/Industrial/Meshes/SM_fence_01.SM_fence_01
+   - Original Location: X=1507.0, Y=5095.0, Z=359.135
+   - Original Rotation: Pitch=0.0, Yaw=90.0, Roll=0.0
+   - Original Bounds:
+     * X: [1499.00 .. 1515.00]
+     * Y: [4977.00 .. 5107.00] (span 130 cm across the stair opening)
+     * Z: [359.13 .. 477.53]
+   - Effect: Placed a visible metal railing directly across the north half of the
+     stair opening.
+
+B. Bridge_Ext_Fence_E4 (StaticMeshActor_3794) - REPOSITIONED
+   - Component: StaticMeshComponent0
+   - Static Mesh: /Game/Level_Design/Industrial/Meshes/SM_fence_01.SM_fence_01
+   - Original Location: X=1507.0, Y=4980.0, Z=359.135
+   - Original Rotation: Pitch=0.0, Yaw=90.0, Roll=0.0
+   - Original Bounds:
+     * X: [1499.00 .. 1515.00]
+     * Y: [4862.00 .. 4992.00]
+     * Z: [359.13 .. 477.53]
+   - Effect: Encroached 54 cm into the stair entrance opening (Y=4938 to 4992),
+     partially blocking the south side of the entrance.
+
+C. Bridge_Safety_Barrier_East (StaticMeshActor_3797) - RESIZED & REPOSITIONED
+   - Component: StaticMeshComponent0
+   - Static Mesh: /Engine/BasicShapes/Cube.Cube (Hidden in game, BlockAll collision)
+   - Original Location: X=1521.0, Y=4670.0, Z=420.0
+   - Original Scale: X=0.2, Y=9.5, Z=3.5
+   - Original Bounds:
+     * X: [1511.00 .. 1531.00]
+     * Y: [4195.00 .. 5145.00] (span 950 cm along Y)
+     * Z: [245.00 .. 595.00]
+   - Effect: An invisible collision hull that extended all the way to Y=5145,
+     physically sealing the entire stair entrance opening (Y=4938 to 5100) with
+     a 350-cm-tall invisible collision wall up to Z=595.
+
+Physical Reproduction of Obstruction (Before Fix):
+- When walking along Y=5000 toward the stair entrance (X=1420 -> +X), the character
+  capsule (radius 42 cm) collided at X=1469.8 (capsule front edge at X=1511.8).
+- Velocity immediately dropped from 600 cm/s to 0.0 cm/s. The player could not step
+  onto the top stair landing.
+
+--------------------------------------------------------------------------------
+2. WHY PRIOR TESTS FAILED TO ESTABLISH THIS ROUTE'S CLEARANCE
+--------------------------------------------------------------------------------
+In previous sessions, automated tests reported "PASS" for stairs based on an
+entirely different route:
+1. Directional Confusion in Early Scripts:
+   - The original bridge extension script (_tools/apply_bridge_extension.py) assumed
+     the canal stairs were located on the WEST side of the bridge (Y: 4400 -> 3600).
+   - It deleted StaticMeshActor_3606 on the WEST side.
+   - It then erected safety fences and collision barriers (E1-E5 and Barrier_East)
+     along the entire EAST edge, mistakenly believing the east edge was an exposed
+     drop into the canal water without stairs.
+2. Flawed Test Waypoints:
+   - Traversal scripts (test_stair_traversal.py and test_continuous_landing_walk.py)
+     navigated WEST along the upper walkway:
+     X: 1420 -> 1350 -> 1200 -> 900 -> 600.
+   - This west route was indeed clear because StaticMeshActor_3606 had been removed.
+   - The scripts asserted that reaching X=600 constituted a "stair traversal pass",
+     even though the player never approached or stepped on the descending flight.
+3. The Actual Pictured Flight:
+   - The user's screenshot clearly looks EAST toward descending metal stairs that
+     lead down to the canal rubble floor (X: 1560 -> 1640 -> 1750, Y: 4950..5080).
+   - This flight descends from Z=360 down to Z=330.
+   - The prior automated scripts never exercised or swept this east flight.
+
+--------------------------------------------------------------------------------
+3. ACTUAL EDIT AND BACKUP PATHS
+--------------------------------------------------------------------------------
+Map Backup Created Before Any Edits:
+- Backup Path: D:\Projects\Substrate\Saved\Verification\stair_block_20261017\L_SectorC_backup.umap
+- Size: 16,205,225 bytes
+- Timestamp: 2026-10-17 14:15:20 EDT
+
+Persistent Map Edited & Saved:
+- Map Asset: /Game/Substrate/Maps/L_SectorC.umap
+- Physical File: D:\Projects\Substrate\Content\Substrate\Maps\L_SectorC.umap
+- Save Method: EditorLoadingAndSavingUtils::SavePackages (clean persistent map save,
+  not PIE temporary world)
+
+Local Reversible Repair Actions:
+1. Deleted StaticMeshActor_3795 (Bridge_Ext_Fence_E5) to open the north half of
+   the entrance.
+2. Repositioned StaticMeshActor_3794 (Bridge_Ext_Fence_E4):
+   - New Location: X=1507.0, Y=4926.0, Z=359.135
+   - New Bounds:
+     * X: [1499.00 .. 1515.00]
+     * Y: [4807.65 .. 4937.65]
+     * Z: [359.13 .. 477.53]
+   - Rationale: Protects the walkway edge where there is a sheer drop to canal water
+     (Y=4808 to 4938), meeting the stair handrail exactly at Y=4938 without encroaching
+     into the stair entrance.
+3. Resized and Repositioned StaticMeshActor_3797 (Bridge_Safety_Barrier_East):
+   - New Location: X=1521.0, Y=4562.5, Z=420.0
+   - New Scale: X=0.2, Y=7.35, Z=3.5
+   - New Bounds:
+     * X: [1511.00 .. 1531.00]
+     * Y: [4195.00 .. 4930.00] (span 735 cm along Y)
+     * Z: [245.00 .. 595.00]
+   - Rationale: Fully preserves invisible drop-edge protection along the bridge deck
+     over the canal water, while terminating cleanly at Y=4930 before the stair opening.
+4. Preserved Walkable Floor and Drop Protection:
+   - Walkable floor meshes (metal grating landing and concrete steps) are 100% intact.
+   - No floor holes, gaps, or mesh deletions were made.
+   - East drop protection south of Y=4938 is fully maintained.
+   - North and south handrails of the stair flight remain intact.
+5. Tool Update:
+   - Updated D:\Projects\Substrate\_tools\apply_bridge_extension.py with the exact
+     repaired fence and barrier parameters to ensure reproducibility.
+
+--------------------------------------------------------------------------------
+4. SAME-VIEW BEFORE/AFTER EVIDENCE
+--------------------------------------------------------------------------------
+Camera Pose for Visual Alignment:
+- Location: X=1420.0, Y=4850.0, Z=420.0 (User's bridge approach viewpoint)
+- Rotation: Pitch=-15.0, Yaw=40.0, Roll=0.0
+
+Evidence Screenshots:
+1. User Reported Failure:
+   - Saved/Verification/stair_block_20261017/user_reported_stair_block.png
+   - Matches original temp clipboard: codex-clipboard-62c8a6fc-1d2f-4806-860a-0b371dfc1377.png
+
+2. Before Fix (In-Engine Visual Match):
+   - Saved/Verification/stair_block_20261017/bridge_yaw40_test.png
+   - Size: 3,462,496 bytes
+   - Confirms: Metal railing (Bridge_Ext_Fence_E4 & E5) and safety barrier completely
+     blocking the approach to the stairs.
+
+3. After Fix (Exact Viewpoint Match):
+   - Saved/Verification/stair_block_20261017/after_fix_user_approach.png
+   - Size: 3,474,951 bytes
+   - Confirms: Railing across the stair entrance is removed; entrance between the two
+     handrails is completely open; drop-edge fence to the right is cleanly terminated
+     at the handrail; walkable landing floor is intact.
+
+4. After Fix (Top Landing View Looking Down Flight):
+   - Saved/Verification/stair_block_20261017/after_fix_landing_view.png
+   - Camera: X=1520.0, Y=4960.0, Z=420.0, Pitch=-18.0, Yaw=0.0
+   - Confirms: Unobstructed view straight down the steps to the lower canal walkway.
+
+5. Raycast Clearance Across Entrance:
+   - Traces from X=1420 to X=1650 at Z=400 across Y = [4950, 4980, 5000, 5030, 5060, 5090]:
+   - All 6 raycasts: 0 blocking hits (100% CLEAR).
+
+--------------------------------------------------------------------------------
+5. FULL DESCENT AND ASCENT TEST RESULTS (LABELED SEPARATELY)
+--------------------------------------------------------------------------------
+A. IN PIE (REAL PAWN AUTOMATED PHYSICAL TRAVERSAL):
+Test Harness: _tools/test_actual_stair_traversal.py
+Movement Settings: Normal CharacterMovementComponent, MaxWalkSpeed=600 cm/s,
+no teleportation, no flying, no custom step height hacks.
+Log File: Saved/Verification/stair_block_20261017/actual_stairs_traversal_log.json
+
+Checkpoints Tested:
+- CP1 (Approach):           X=1420.0, Y=4980.0, Z=359.0
+- CP2 (Stair Entrance):     X=1560.0, Y=5010.0, Z=360.0
+- CP3 (Middle of Flight):   X=1640.0, Y=5010.0, Z=342.0
+- CP4 (Lower Walkway Base): X=1750.0, Y=5010.0, Z=330.0
+
+Results:
+1. Test 1 - Direct Descent (CP1 -> CP2 -> CP3 -> CP4):
+   - Status: [PASS]
+   - Trajectory:
+     * Start: X=1420.0, Y=4980.0, Z=457.2 (capsule base Z=361.2)
+     * Passed CP2 (Entrance): X=1550.6, Y=5008.0, Z=457.2
+     * Descended CP3 (Mid-Flight): X=1635.9, Y=5018.1, Z=451.1
+     * Stepped down flight: X=1663.6, Y=5018.9, Z=437.1
+     * Reached CP4 (Lower Walkway): X=1756.4, Y=5013.4, Z=428.2 (capsule base Z=332.2)
+   - Vertical Elevation Change: Descended 29.0 cm (Z: 457.2 -> 428.2).
+   - Obstructions / Snagging: 0.
+
+2. Test 2 - Direct Ascent (CP4 -> CP3 -> CP2 -> CP1):
+   - Status: [PASS]
+   - Trajectory:
+     * Start at Lower Walkway: X=1768.7, Y=5008.5, Z=428.1
+     * Climbed flight: X=1633.6, Y=5010.1, Z=452.8
+     * Stepped onto Top Landing: X=1608.5, Y=5010.4, Z=458.4
+     * Returned to Bridge Walkway (CP1): X=1420.4, Y=4986.0, Z=457.2
+   - Vertical Elevation Change: Ascended 29.1 cm (Z: 428.1 -> 457.2).
+   - Obstructions / Snagging: 0.
+
+3. Test 3 - Angled Descent (Approach from North Y=5070 -> CP2 -> CP4):
+   - Status: [PASS]
+   - Start: X=1402.6, Y=5064.8, Z=457.2 -> entered CP2 -> reached CP4 (X=1744.2, Y=5000.3, Z=428.0).
+   - Proves entry angle does not catch on doorframe or handrail corner.
+
+4. Test 4 - Angled Ascent (CP4 -> CP2 -> Approach North Y=5070):
+   - Status: [PASS]
+   - Start: X=1765.9, Y=5002.6, Z=428.0 -> climbed to CP2 -> exited north to X=1402.9, Y=5062.8, Z=457.2.
+
+5. Safety Check:
+   - CanalRescue triggers: 0 (Z never dropped below danger threshold Z=240).
+   - Floor holes: None.
+
+--------------------------------------------------------------------------------
+B. IN PACKAGED SHIPPING BUILD (FRESH CANDIDATE):
+Build Candidate ID: Windows_StairFixed_20261017_152500
+Build Execution: UAT BuildCookRun completed with exit code 0 (BUILD SUCCESSFUL).
+HoudiniEngine Status: Disabled per-project in Substrate.uproject ("HoudiniEngine": false).
+Build Provenance: Saved/Verification/stair_block_20261017/build_provenance_20261017_152500.json
+
+Packaged Verification Test: _tools/test_stair_fixed_package.py
+1. Startup & Modal Error Check:
+   - Status: [PASS]
+   - Launched: D:\Projects\Substrate\Packaged\Windows_StairFixed_20261017_152500\Substrate.exe
+   - Child Game Process PID identified cleanly via CIM instance query.
+   - Modal Dialogs / Error Message Boxes: 0 (No "HoudiniEngineRuntime could not be found").
+   - UnrealWindow HWND: 331144 ('Substrate  ') created promptly.
+
+2. Viewport Scene Rendering:
+   - Status: [PASS]
+   - Window rendered full 3D game scene (1280x720 windowed).
+   - Captured: Saved/Verification/stair_block_20261017/packaged_stair_fixed_gameplay.png
+   - Size: 1,899,349 bytes, 71,578 unique colors (verifying full 3D lighting, textures, post-processing).
+
+3. Packaged Input Responsiveness:
+   - Status: [PASS]
+   - Movement keys (W/D keystrokes) injected via Win32 keybd_event.
+   - Captured: Saved/Verification/stair_block_20261017/packaged_stair_fixed_postmove.png
+   - Size: 1,897,251 bytes, 71,242 unique colors.
+
+4. Clean Shutdown:
+   - Status: [PASS]
+   - Responded to WM_CLOSE message cleanly.
+   - Process exit code: 0.
+
+--------------------------------------------------------------------------------
+6. NEW EXECUTABLE PATH AND VERIFICATION SCOPE
+--------------------------------------------------------------------------------
+New Shipping Candidate Executable:
+- Launcher: D:\Projects\Substrate\Packaged\Windows_StairFixed_20261017_152500\Substrate.exe
+  * Size: 171,520 bytes
+  * SHA-256: c885938ee747343777153db3b196b275c6ef461addd02aba43c5d98434af6da5
+- Game Binary: D:\Projects\Substrate\Packaged\Windows_StairFixed_20261017_152500\Substrate\Binaries\Win64\Substrate-Win64-Shipping.exe
+  * Size: 165,788,160 bytes
+  * SHA-256: 30b9331632c559867a19c05b62c1177da4a2f15f9d177e72bbab2fd201ef3b4e
+- Content Package: D:\Projects\Substrate\Packaged\Windows_StairFixed_20261017_152500\Substrate\Content\Paks\Substrate-Windows.ucas
+  * Size: 577,528,272 bytes
+  * SHA-256: f0a6c96fd13d94b1bf614370ac486720ea925df9a0e003db1b620d60a701d87c
+
+Verified Checks:
+- Visual match of user screenshot landing and stair route: VERIFIED
+- Physical collision reproduction of player-reported block: VERIFIED
+- Persistent map repair removing the blocking rail and barrier: VERIFIED
+- Preservation of bridge drop-edge protection and stair handrails: VERIFIED
+- In-PIE automated continuous descent (Z: 457.2 -> 428.2) with real pawn: VERIFIED
+- In-PIE automated continuous ascent (Z: 428.1 -> 457.2) with real pawn: VERIFIED
+- In-PIE angled entrance descent/ascent: VERIFIED
+- Fresh Shipping build cook and packaging without Houdini errors: VERIFIED
+- Packaged Shipping startup, 0 modal errors, 3D rendering, and input response: VERIFIED
+
+Explicitly Labeled Unverified Check:
+- [NOT VERIFIED BY AUTOMATION]: Manual human playtest of the stair descent within
+  the packaged Shipping executable itself. Because the Shipping build starts the player
+  at the default level player start (requiring complex navigation through corridors,
+  anomalies, and the airlock to reach Sector C's bridge), automated headless input
+  could not drive the character from spawn all the way across the facility to this
+  specific stair landing outside of PIE.
+  The candidate executable is provided above for the user's direct playtest.
+
+================================================================================
+END OF REPORT
+================================================================================

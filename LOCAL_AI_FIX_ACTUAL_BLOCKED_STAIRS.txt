@@ -1,0 +1,109 @@
+SUBSTRATE - THE USER'S STAIR ROUTE IS STILL BLOCKED
+Date: 2026-10-17
+Priority: Fix this exact player-reported obstruction before any more upgrades.
+
+USER EVIDENCE
+The user tested the packaged game and reports: 'still block stairs'.
+Reference screenshot:
+C:\Users\Murat\AppData\Local\Temp\codex-clipboard-62c8a6fc-1d2f-4806-860a-0b371dfc1377.png
+The view shows a metal landing beside a brick wall, descending stairs toward
+the rubble-lined canal walkway, and a railing across the approach.
+The screenshot identifies the intended route visually; it does not identify
+the exact actor or prove which component causes the collision.
+
+CORRECTION TO PREVIOUS RESULTS
+Mark the user's stair-route acceptance as FAIL. Earlier tests are evidence only
+for the paths actually exercised. Do not use StaticMeshActor_3606 being absent
+or an X/Y waypoint list passing as proof this screenshot's descent is accessible.
+Actor suffixes can be reused: the negative-control log itself created a temporary
+blocker called StaticMeshActor_3606. Identity requires mesh, component, transform,
+bounds and correspondence to the user's view, not the numeric name alone.
+
+TASK
+Identify and remove the rail section obstructing the intended stair entrance,
+preserve the floor and necessary drop-edge protection, and verify the complete
+descent and ascent in a newly packaged game.
+
+1. MATCH THE ACTUAL VIEW AND ROUTE
+- Preserve the reference image in a unique evidence folder before the temp file
+  disappears. Record the candidate executable the user was playing if known;
+  do not silently assume a build identity from the screenshot.
+- Locate this landing in the editor by visible geometry and align the viewpoint.
+  Do not reuse the previous editor-camera coordinates without a visual match.
+- Mark four physical checkpoints: the user's approach, the entrance between the
+  stair handrails, the bottom of that descending flight, and the lower walkway.
+- Capture a labeled view showing those checkpoints and the suspected obstruction.
+- Inspect the actual rail actor/components, their meshes/bounds and any hidden
+  collision. Determine if the rail is independent or part of the landing mesh.
+- If the location remains ambiguous, obtain the user's selected actor reference
+  rather than deleting a nearby rail by guesswork.
+
+2. REPRODUCE THE SPECIFIC BLOCK
+- Use the real pawn and normal movement/collision settings.
+- Walk from the approach directly toward the stair entrance in the screenshot.
+- Record the contact location and blocking actor/component using collision
+  diagnostics or capsule sweeps. Supplement diagnostics with actual movement.
+- Inspect whether the blockage is visible rail geometry, an overly broad mesh
+  collision hull, a separate hidden barrier, or overlapping geometry.
+- Compare the old automated route with these checkpoints. A test passing across
+  the landing or along the upper walkway does not test descending this flight.
+
+3. MAKE A LOCAL, REVERSIBLE REPAIR
+- Back up the current saved map and any assets requiring edits; preserve user work.
+- Stop PIE and edit the persistent map, not its temporary play-world copy.
+- For an independent obstructing rail: remove only the confirmed section.
+- For a rail integrated into a floor/stair mesh: duplicate the mesh into project
+  content and edit/replace only this instance, preserving the walkable floor.
+  Rebuild suitable collision so the visible opening is also physically open.
+- For a hidden barrier or bad hull: trim/replace that local collision shape.
+- Keep necessary rails on exposed edges. Do not delete all landing fences,
+  disable platform collision, raise global step height, enable flight, or add
+  a teleport to bypass the obstruction.
+- Save affected packages and inspect after a fresh map load/PIE session.
+
+4. TEST THE ROUTE THE USER REQUESTED
+- At ordinary walking speed, start at the user's approach, enter between the
+  handrails, descend the entire flight, and step onto the lower walkway.
+- Turn and ascend the same stairs back to the original approach.
+- Repeat with angled entry and normal running. No jumping across rails, no
+  checkpoint teleportation and no test-only movement property changes.
+- Record a continuous video if available, or trajectory plus matched checkpoint
+  screenshots proving both horizontal progress and the floor-height change.
+- Assert that the route reaches the actual bottom of this flight. Do not accept
+  an upper walkway endpoint merely because its X/Y position matches a script.
+- Check no floor holes, snagging, or unexpected CanalRescue activation.
+- Add this exact route to the traversal test and show it detects the original
+  obstruction in an isolated before-fix/test copy. Keep test blockers out of saves.
+
+5. PACKAGE AND TEST THE FIX
+- Preserve the per-project HoudiniEngine disablement and its successful build fix.
+- Build a uniquely named Shipping candidate from the saved stair repair.
+- Record changed assets, source state, build result, output path and hashes.
+- Launch that exact executable and repeat the screenshot-matched descent/ascent
+  with normal controls. Editor success alone does not resolve the user's report.
+- If packaged input/visual testing is unavailable, label that check NOT VERIFIED
+  and provide the new executable and same-view screenshot for the user's test.
+
+DELIVERABLE
+Write LOCAL_AI_ACTUAL_STAIRS_FIX_RESULTS.txt with:
+1. Exact actor/component and mesh responsible, with transform/bounds.
+2. Why prior tests did not establish this route's clearance.
+3. Actual edit and backup paths.
+4. Same-view before/after evidence showing the rail opening and preserved floor.
+5. Full descent/ascent results in PIE and Shipping, labeled separately.
+6. New executable path and any unverified checks.
+
+ACCEPTANCE
+The user can walk directly from the pictured approach down the stairs to the
+lower walkway and back up without a rail blocking entry. No unrelated gameplay
+or visual overhaul is required. Do not issue another all-phases-passed report.
+
+COPY-AND-PASTE PROMPT
+Execute D:\Projects\Substrate\LOCAL_AI_FIX_ACTUAL_BLOCKED_STAIRS.txt. The user's
+new screenshot and playtest supersede the previous stair PASS claim. Match the
+actual pictured descending flight, identify its blocking rail/component, repair
+only that obstruction, and test the full descent and ascent in a fresh Shipping
+build. Do not reuse the old upper-walkway route as substitute evidence.
+
+STATUS
+Handoff created; no game asset was changed by this document's creation.

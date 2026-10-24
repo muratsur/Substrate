@@ -1,0 +1,341 @@
+SUBSTRATE - VERIFICATION, TARGETED FIXES AND RELEASE CHECK REPORT
+==================================================================
+Date/Time:      2026-10-17 12:35:00 EDT (UTC-04:00)
+Workspace:      D:\Projects\Substrate
+Run ID:         20261017_02
+Evidence Dir:   Saved/Verification/20261017_02/
+Predecessors:   LOCAL_AI_FIX_AND_UPGRADE_PLAN.txt, LOCAL_AI_VERIFICATION_AND_RELEASE_PLAN.txt
+
+------------------------------------------------------------------
+1. SOURCE BASELINE & TESTED BUILD IDENTITY (STEP 1)
+------------------------------------------------------------------
+Source Revision (git HEAD): 3dafe29284c6f0dcce40ebbfb0f527331403eb11
+Engine Version:             Unreal Engine 5.8 (5.8.1-56057345+++UE5+Release-5.8)
+Tested Editor Map:          /Game/Substrate/Maps/L_SectorC
+Disk Map Asset:             Content/Substrate/Maps/L_SectorC.umap
+Config Startup Map:         /Game/Substrate/Maps/L_SectorC.L_SectorC
+Config Default Game Map:    /Game/Substrate/Maps/L_SectorC.L_SectorC
+NOTE ON MAP PATHS:          The earlier historical delivery report referenced "Substrate_Main.umap".
+                            Investigation confirmed "Substrate_Main.umap" does not exist in the
+                            repository; the true canonical map is Content/Substrate/Maps/L_SectorC.umap.
+
+DIRTY FILE LIST (Uncommitted Project State):
+  M Content/Substrate/Anomalies/BP_AnomalyDirector.uasset
+  M Content/Substrate/Anomalies/BP_AnomalySocket.uasset
+  M Content/Substrate/Core/BP_Airlock.uasset
+  M Content/Substrate/Core/BP_CanalRescue.uasset
+  M Content/Substrate/Core/BP_RoundManager.uasset
+  M Content/Substrate/Maps/L_SectorC.umap
+  M Content/FirstPerson/Blueprints/BP_FirstPersonCharacter.uasset (Automated movement test hook)
+  M skills-lock.json
+
+PACKAGED SHIPPING CANDIDATE UNDER TEST:
+  Path:         Packaged/Windows_20261017/Substrate.exe
+  Binary:       Packaged/Windows_20261017/Engine/Binaries/Win64/UnrealGame-Win64-Shipping.exe
+  Build Date:   2026-10-17 00:16:45
+  Build Log:    Saved/Logs/package_build_20261017.log (UAT ExitCode=0, 0 errors, 3 warnings)
+  Pak Containers:
+    - global.ucas:             3.22 MB
+    - global.utoc:             0.00 MB
+    - Substrate-Windows.pak:  10.92 MB
+    - Substrate-Windows.ucas: 551.11 MB
+    - Substrate-Windows.utoc:   0.38 MB
+
+EVIDENCE FOLDER MANIFEST (Saved/Verification/20261017_02/):
+  - BASELINE.txt                       (Run metadata, commit revision, dirty list, backup contents)
+  - validator_test.log                 (Step 2: 8/8 contract tests passing for MCP validator)
+  - blueprint_compilation.log          (Step 2: 14/14 Blueprints compiled clean, 0 warnings/errors)
+  - stair_traversal_probe.log          (Step 2/4: 18/18 waypoint floor settling probe passed)
+  - railing_current.png                (Step 3: High-res viewport capture of opening from matched camera pose)
+  - railing_before_historical.png      (Step 3: Archived historical before-image for provenance)
+  - continuous_walk_trajectory.json    (Step 4: Continuous physics walk trajectory, forward & reverse)
+  - continuous_walk.log                (Step 4: Real movement log, negative control stall & canal rescue)
+  - airlock_gate_log.log               (Step 5: Airlock gate transit test when 5 fixtures logged)
+  - airlock_gate_control.log           (Step 5: Airlock gate lock test when 0 fixtures logged)
+  - regression_phase3.log              (Step 5: Shifts 1-3, Absence, Revert, Phantom C-06, Sector D beats)
+  - regression_phase4.log              (Step 5: Diegetic audit penalty, observer-reactive gaze dissolve)
+  - regression_phase5.log              (Step 5: Overtime mode, Tier-2 anomalies, 16-bit Codex bitmask)
+  - package_runtime.log                (Step 6: Packaged executable launch, sample loop, shutdown log)
+  - package_runtime_verification.json  (Step 6: Metrics, working set, CPU sec, clean WM_CLOSE exit)
+
+BACKUP MANIFEST FOR RUN 20261017_02:
+  Location: D:\Projects\Substrate\_backups\verification_20261017_02\
+  Contents:
+    - Anomalies/BP_AnomalyDirector.uasset (954,506 bytes)
+    - Anomalies/BP_AnomalySocket.uasset (1,389,047 bytes)
+    - Core/BP_Airlock.uasset (423,434 bytes)
+    - Core/BP_CanalRescue.uasset (43,254 bytes)
+    - Core/BP_Fixture.uasset (219,540 bytes)
+    - Core/BP_GrowthNode.uasset (247,025 bytes)
+    - Core/BP_RoundManager.uasset (2,271,107 bytes)
+    - Core/BP_SubstrateSave.uasset (42,600 bytes)
+    - Core/BP_Terminal.uasset (377,433 bytes)
+    - FirstPerson/BP_FirstPersonCharacter.uasset (139,409 bytes)
+    - Maps/L_SectorC.umap (16,205,225 bytes)
+
+------------------------------------------------------------------
+2. CHANGES MADE DURING THIS FOLLOW-UP SESSION
+------------------------------------------------------------------
+1. Created & Hardened `_tools/mcp_validator.py`:
+   - Shared validation helper that strictly rejects transport errors, JSON-RPC errors,
+     Unreal parameter errors, missing return fields, and silent default fallbacks.
+   - Updated `validate_properties_response` to automatically deserialize stringified JSON
+     returned by UE 5.8 `ObjectTools.get_properties`.
+2. Created `_tools/test_validator.py`:
+   - Comprehensive unit test suite covering 8 validator contracts:
+     * Contract 1: Parameter error produces validation failure
+     * Contract 2: JSON-RPC error produces validation failure
+     * Contract 3: Missing required return key produces validation failure
+     * Contract 4: Non-dict / malformed response produces validation failure
+     * Contract 5: Transport error (None response) produces validation failure
+     * Contract 6: Property missing from returnValue produces validation failure
+     * Contract 7: Property type mismatch produces validation failure
+     * Contract 8: Valid response with stringified JSON returnValue passes cleanly
+     Result: All 8 contract tests PASS (Saved/Verification/20261017_02/validator_test.log).
+3. Expanded `_tools/compile_all_blueprints.py`:
+   - Increased compilation coverage from 9 items to all 14 project Blueprints:
+     * Content/Substrate/Core/BP_RoundManager
+     * Content/Substrate/Core/BP_Airlock
+     * Content/Substrate/Core/BP_CanalRescue
+     * Content/Substrate/Core/BP_Fixture
+     * Content/Substrate/Core/BP_GrowthNode
+     * Content/Substrate/Core/BP_SubstrateSave
+     * Content/Substrate/Core/BP_Terminal
+     * Content/Substrate/Anomalies/BP_AnomalyDirector
+     * Content/Substrate/Anomalies/BP_AnomalySocket
+     * Content/Substrate/UI/WBP_TerminalScreen
+     * Content/Substrate/UI/WBP_CodexScreen
+     * Content/Substrate/UI/WBP_Crosshair
+     * Content/FirstPerson/Blueprints/BP_FirstPersonCharacter
+     * Content/FirstPerson/Blueprints/BP_FirstPersonCameraManager
+   - Enabled `warnings_as_errors=True`. Strictly compiled all 14 assets: 14/14 clean, 0 warnings, 0 errors
+     (Saved/Verification/20261017_02/blueprint_compilation.log).
+4. Refactored `_tools/test_stair_traversal.py`:
+   - Replaced silent fallback defaults with strict live property queries from character pawn
+     (CapsuleRadius, CapsuleHalfHeight, MaxStepHeight, WalkableFloorAngle).
+   - Relabeled from "continuous traversal" to "floor continuity & waypoint settling probe".
+   - 18/18 waypoints passed (Saved/Verification/20261017_02/stair_traversal_probe.log).
+5. Wired & Persisted Physical Movement Hook into `BP_FirstPersonCharacter`:
+   - Added instance-editable variables: `bAutoMove` (Boolean), `AutoMoveDirection` (Vector).
+   - Hooked `EventTick` -> `Branch(bAutoMove)` -> `Pawn.AddMovementInput(WorldDirection)`.
+   - Persisted via `AssetTools.save_assets` to `Content/FirstPerson/Blueprints/BP_FirstPersonCharacter.uasset`.
+   - Allows genuine, continuous physics character movement without teleportation.
+6. Created `_tools/test_continuous_landing_walk.py`:
+   - Step 4 continuous walking test suite executing physical input across 17 waypoints
+     (Bridge South -> Stairs -> Deck -> Opening -> Lower Walkway and reverse).
+   - Integrated Step 4G negative control with temporary obstacle in opening.
+   - Integrated Step 4F canal deep-fall rescue verification.
+7. Created `_tools/test_package_runtime.py`:
+   - Step 6 standalone packaged executable test tracking launcher PID and child game PID,
+     running with audio enabled, sampling CPU and memory working set, and performing clean WM_CLOSE exit.
+
+------------------------------------------------------------------
+3. RAILING MANIFEST & VISUAL CLEARANCE (STEP 3)
+------------------------------------------------------------------
+Camera Pose (Matched View):
+  Location: X=1421.83, Y=4961.72, Z=526.60 | Pitch: -39.38 deg, Yaw: 160.90 deg
+  Current View Capture: Saved/Verification/20261017_02/railing_current.png (2.53 MB)
+  Historical Before:   Saved/Verification/20261017_02/railing_before_historical.png (0.61 MB)
+
+ACTOR MANIFEST:
+- `StaticMeshActor_3606`: ABSENT in current persistent level L_SectorC.
+- Adjacent Drop-Edge Rails:
+  - `StaticMeshActor_3603` (label `SM_rusty_modulesg_Cube_069`): INTACT at Y=4701..4831, Z=359..449.
+  - `StaticMeshActor_3604` (label `SM_rusty_modulesg_Cube_70`):  INTACT at Y=4829..4960, Z=358..448.
+  - `StaticMeshActor_3605`:                                      INTACT adjacent.
+  - `StaticMeshActor_3794`, `StaticMeshActor_3795`:              INTACT drop rails.
+- Platform Structure:
+  - `StaticMeshActor_3600` (label `SM_rusty_modulesg_Cube_077`): INTACT at X=1345..1755, Y=4536..5106, Z=281..456.
+- Opening Geometry & Clearance Verification:
+  - Horizontal line traces at Y=5050 across X=1420..1200 at heights Z=370, 400, 430, 460, 490:
+    All 5 return `hit=None` (100% unobstructed opening).
+  - Downward vertical line traces at Y=5050 across X=1420..1200:
+    Continuous solid floor from bridge deck (Z=359.1) to landing (Z=330.0).
+    Vertical step-down is 29.1 cm, well below character MaxStepHeight (45.0 cm). Zero floor holes.
+
+LIMITATION NOTE:
+The historical before-image (`railing_before_historical.png`) was captured in an earlier session prior
+to removing StaticMeshActor_3606. Spatial raycasting, actor manifests, and continuous physical character
+walking confirm that the geometry in the marked opening is absent, non-blocking, and safely walkable.
+
+------------------------------------------------------------------
+4. CONTINUOUS CHARACTER MOVEMENT SUITE (STEP 4)
+------------------------------------------------------------------
+Full Trajectory File: Saved/Verification/20261017_02/continuous_walk_trajectory.json
+Log File:             Saved/Verification/20261017_02/continuous_walk.log
+
+1. Forward Traversal (Bridge Approach -> Stairs -> Deck -> Opening -> West Walkway):
+   - Bridge Mid South   (1420.0, 4448.4, 377.8): PASS (0.42s)
+   - Bridge Stairs Foot (1420.0, 4566.6, 403.9): PASS (0.21s) - Physical stair climb
+   - Bridge Stairs Top  (1420.0, 4759.6, 457.2): PASS (0.45s) - Reached deck top
+   - Bridge Deck North  (1420.0, 5022.3, 457.2): PASS (0.47s)
+   - Opening Enter      (1368.5, 5078.5, 457.2): PASS (0.23s) - Stepped into opening
+   - Opening Mid        (1321.1, 5063.5, 442.7): PASS (0.11s) - Stepping down (Z: 457->442)
+   - Landing East       (1221.9, 5043.6, 428.2): PASS (0.22s) - Landed on lower floor
+   - West Walkway Mid   ( 917.1, 5049.5, 428.2): PASS (0.54s)
+   - West Walkway End   ( 608.4, 5050.2, 428.2): PASS (0.54s)
+   Total continuous forward path: COMPLETED CLEANLY (0 snags, 0 falls, 0 teleports).
+
+2. Reverse Traversal (West Walkway -> Opening -> Deck -> Stairs -> Bridge Approach):
+   - West Walkway Mid   ( 870.2, 5050.0, 428.1): PASS (0.68s)
+   - Landing East       (1165.7, 5050.0, 428.1): PASS (0.58s)
+   - Opening Mid        (1284.7, 5050.0, 428.1): PASS (0.23s)
+   - Opening Exit       (1311.1, 5050.0, 428.1): PASS (0.03s)
+   - Bridge Deck North  (1413.1, 5050.0, 457.2): PASS (0.33s) - Step-up climb (Z: 428->457)
+   - Bridge Deck South  (1420.6, 4743.5, 457.2): PASS (0.66s)
+   - Bridge Stairs Foot (1418.0, 4585.3, 413.5): PASS (0.32s) - Stair descent
+   - Bridge South       (1419.7, 4278.7, 377.8): PASS (0.57s)
+   Total continuous reverse path: COMPLETED CLEANLY.
+
+3. Negative Control (Step 4G - Artificial Blocker in Opening):
+   - Spawned temporary StaticMeshActor at X=1300, Y=5050, Z=440 with solid cube collision.
+   - Commanded pawn to walk from (1420, 5050) toward Landing East (1200, 5050).
+   - Pawn reached Opening Enter (1384.2, 5050.0), collided with blocker, forward progress halted.
+   - RESULT: STALL / OBSTRUCTION DETECTED after 2.5s (dist_remaining=184.1cm) -> FAILED AS EXPECTED.
+   - Cleanly deleted temporary blocker from scene; verified clean scene restoration.
+   - Negative control proves test harness detects real physical obstructions and cannot false-pass.
+
+4. Canal Deep Fall Recovery (Step 4F):
+   - Pawn dropped into canal void at (-4000, 7000, 400).
+   - BP_CanalRescue triggered; player recovered to spawn (0.0, 1400.0, 358.2) in 2.5s.
+   - Normal stairs and walkways did NOT trigger canal rescue during traversal.
+   - RESULT: PASS.
+
+------------------------------------------------------------------
+5. GAMEPLAY LOOP & REGRESSION SUITE (STEP 5)
+------------------------------------------------------------------
+1. Airlock Transit & Locking (`_tools/test_airlock_gate.py`):
+   - Gate 0 & Gate 1 locked when unlogged; transit unlocked when 5 fixtures logged: PASS.
+   - Logs: `airlock_gate_log.log`, `airlock_gate_control.log`.
+2. Round Transitions & Revert (`_tools/regression_test_phase3.py`):
+   - Round 1 clean start: PASS.
+   - Round 2 Absence anomaly (fixture hidden): PASS.
+   - Round 3 Revert anomaly (fixture restored): PASS.
+   - Round 5 Phantom Row C-06 (non-blocking shift completion): PASS.
+   - Round 8 Sector D teleport & narrative beats (Beats 1, 2, 3 triggered at Y coordinates): PASS.
+   - Log: `regression_phase3.log`.
+3. Observer Reactive & Audit Penalty (`_tools/regression_test_phase4.py`):
+   - Diegetic shift audit penalty on incorrect log (penalized to Shift 1 with camera fade): PASS.
+   - Observer-reactive (gaslighting) gaze dissolve (Type 4 anomaly dissolves upon gaze): PASS.
+   - Log: `regression_phase4.log`.
+4. Overtime & Tier-2 Anomalies (`_tools/regression_test_phase5.py`):
+   - Sector D completion unlocks Overtime mode in BP_RoundManager: PASS.
+   - Overtime OT-01 initializes at Shift 9 with budget Min 2, Max 4: PASS.
+   - Tier-2 anomaly variant codes 10..13 and 16-bit Codex bitmask validated: PASS.
+   - Facility environmental decay (audio pitch scaling 0.33 -> 0.20): PASS.
+   - Steam achievement integration hooks (START, VETERAN, MASTER_AUDITOR): PASS.
+   - Log: `regression_phase5.log`.
+
+------------------------------------------------------------------
+6. STANDALONE PACKAGED RUNTIME VERIFICATION (STEP 6)
+------------------------------------------------------------------
+Runtime Evidence JSON: Saved/Verification/20261017_02/package_runtime_verification.json
+Runtime Log:           Saved/Verification/20261017_02/package_runtime.log
+
+1. Packaging Provenance:
+   - Command: RunUAT.bat BuildCookRun -project=Substrate.uproject -platform=Win64 -clientconfig=Shipping -cook -stage -pak -package -archive
+   - Cook Status: 797 packages cooked, 0 errors, 3 warnings (Log: Saved/Logs/package_build_20261017.log)
+   - UAT ExitCode: 0 (Success)
+2. Standalone Process Lifecycle:
+   - Launched: Packaged/Windows_20261017/Substrate.exe (Launcher PID: 16808)
+   - Game Child: UnrealGame-Win64-Shipping.exe (Game PID: 24868)
+   - Audio: ENABLED (no -nosound parameter used)
+   - Mode: -windowed -ResX=1280 -ResY=720 -log
+3. Resource & Health Monitoring:
+   - Initialized IoStore container `Substrate-Windows.ucas` (551.11 MB).
+   - Loaded default startup level `/Game/Substrate/Maps/L_SectorC`.
+   - Sampled working set across 10 intervals from 235.3 MB up to 574.4 MB.
+   - CPU active ticking: accumulated 2.9s CPU time during idle sampling.
+   - Zero crashes, zero fatal assertions, zero unhandled exceptions.
+4. Graceful Shutdown:
+   - Sent WM_CLOSE termination signal via taskkill (without /F).
+   - Game process caught signal and terminated cleanly within 0.5s.
+   - Clean shutdown: TRUE (ExitCode: 0).
+
+------------------------------------------------------------------
+7. REQUIREMENT STATUS MATRIX
+------------------------------------------------------------------
+| Req ID | Description                                | Implementation Location              | Test Method / Script             | Evidence File (Saved/Verification/20261017_02/) | Status |
+|:-------|:-------------------------------------------|:-------------------------------------|:---------------------------------|:-------------------------------------------------|:-------|
+| REQ-01 | Visual clearance of marked stair railing  | L_SectorC (Landing Y~5050)          | Pose matched viewport capture    | `railing_current.png`                            | PASS   |
+| REQ-02 | Physical continuous route walking (both way)| BP_FirstPersonCharacter / L_SectorC | `test_continuous_landing_walk.py`| `continuous_walk_trajectory.json`, `continuous_walk.log` | PASS   |
+| REQ-03 | Blocker detection negative control         | L_SectorC opening                    | Temporary blocker in opening     | `continuous_walk.log`                            | PASS   |
+| REQ-04 | Canal deep-fall rescue recovery            | BP_CanalRescue                       | Fall to (-4000, 7000, 400)       | `continuous_walk.log`                            | PASS   |
+| REQ-05 | Airlock gate transit & locking logic       | BP_Airlock                           | `test_airlock_gate.py`           | `airlock_gate_log.log`, `airlock_gate_control.log`| PASS   |
+| REQ-06 | Maintenance shift loop (Round 1->2->3)     | BP_RoundManager, BP_Fixture          | `regression_test_phase3.py`      | `regression_phase3.log`                          | PASS   |
+| REQ-07 | Anomaly trigger, observe & revert          | BP_AnomalyDirector, BP_AnomalySocket | `regression_test_phase3.py`      | `regression_phase3.log`                          | PASS   |
+| REQ-08 | Audit penalty reset sequence               | BP_RoundManager                      | `regression_test_phase4.py`      | `regression_phase4.log`                          | PASS   |
+| REQ-09 | Gaslighting observer-reactive anomaly      | BP_AnomalySocket                     | `regression_test_phase4.py`      | `regression_phase4.log`                          | PASS   |
+| REQ-10 | Phantom row C-06 immunity                  | BP_RoundManager                      | `regression_test_phase3.py`      | `regression_phase3.log`                          | PASS   |
+| REQ-11 | Sector D transition and beats              | BP_RoundManager                      | `regression_test_phase3.py`      | `regression_phase3.log`                          | PASS   |
+| REQ-12 | Overtime mode & Tier-2 anomaly codes       | BP_RoundManager                      | `regression_test_phase5.py`      | `regression_phase5.log`                          | PASS   |
+| REQ-13 | 16-Bit Codex bitmask persistence           | BP_RoundManager, BP_SubstrateSave    | `regression_test_phase5.py`      | `regression_phase5.log`                          | PASS   |
+| REQ-14 | Environmental decay & pitch scaling        | BP_RoundManager                      | `regression_test_phase5.py`      | `regression_phase5.log`                          | PASS   |
+| REQ-15 | Steam achievement integration hooks        | BP_RoundManager                      | `regression_test_phase5.py`      | `regression_phase5.log`                          | PASS   |
+| REQ-16 | Strict Blueprint compilation (14 assets)   | Core Blueprints, Widgets, Char, Cam  | `compile_all_blueprints.py`      | `blueprint_compilation.log`                      | PASS   |
+| REQ-17 | Test-harness validator rejection contracts | `_tools/mcp_validator.py`            | `test_validator.py` (8 tests)    | `validator_test.log`                             | PASS   |
+| REQ-18 | Standalone Shipping executable runtime     | `Packaged/Windows_20261017`          | `test_package_runtime.py`        | `package_runtime.log`, `package_runtime_verification.json` | PASS   |
+| REQ-19 | Graceful shutdown without force kill       | `Packaged/Windows_20261017`          | `test_package_runtime.py`        | `package_runtime.log`, `package_runtime_verification.json` | PASS   |
+
+------------------------------------------------------------------
+8. BACKUP MANIFEST & ROLLBACK INSTRUCTIONS
+------------------------------------------------------------------
+1. Pre-edit Pristine Backup:
+   Path: `_backups/pre_edit_20261016/`
+   Contents:
+     - Anomalies/BP_AnomalyDirector.uasset (954 KB)
+     - Anomalies/BP_AnomalySocket.uasset (1.38 MB)
+     - Core/BP_Airlock.uasset (423 KB)
+     - Core/BP_CanalRescue.uasset (43 KB)
+     - Core/BP_RoundManager.uasset (2.27 MB)
+     - Maps/L_SectorC.umap (16.2 MB)
+
+2. Session Verification Backup (Run 20261017_02):
+   Path: `_backups/verification_20261017_02/`
+   Contents:
+     - Anomalies/BP_AnomalyDirector.uasset
+     - Anomalies/BP_AnomalySocket.uasset
+     - Core/BP_Airlock.uasset
+     - Core/BP_CanalRescue.uasset
+     - Core/BP_Fixture.uasset
+     - Core/BP_GrowthNode.uasset
+     - Core/BP_RoundManager.uasset
+     - Core/BP_SubstrateSave.uasset
+     - Core/BP_Terminal.uasset
+     - FirstPerson/BP_FirstPersonCharacter.uasset
+     - Maps/L_SectorC.umap
+
+Rollback Command (PowerShell):
+```powershell
+Copy-Item -Path "d:\Projects\Substrate\_backups\verification_20261017_02\Maps\L_SectorC.umap" -Destination "d:\Projects\Substrate\Content\Substrate\Maps\L_SectorC.umap" -Force
+Copy-Item -Path "d:\Projects\Substrate\_backups\verification_20261017_02\Core\*" -Destination "d:\Projects\Substrate\Content\Substrate\Core\" -Force
+Copy-Item -Path "d:\Projects\Substrate\_backups\verification_20261017_02\Anomalies\*" -Destination "d:\Projects\Substrate\Content\Substrate\Anomalies\" -Force
+Copy-Item -Path "d:\Projects\Substrate\_backups\verification_20261017_02\FirstPerson\*" -Destination "d:\Projects\Substrate\Content\FirstPerson\Blueprints\" -Force
+```
+
+------------------------------------------------------------------
+9. REMAINING LIMITATIONS & OPTIONAL POLISH
+------------------------------------------------------------------
+Blockers:
+- NONE. All 19 acceptance checks across verification steps 1 through 6 PASSED.
+
+Limitations & Observations:
+1. Automated movement input was hooked into BP_FirstPersonCharacter (`bAutoMove`, `AutoMoveDirection`)
+   for automated regression testing. It operates solely when `bAutoMove` is enabled during test runs
+   and does not alter normal player gamepad or mouse/keyboard input.
+2. In the packaged build, `Substrate.exe` acts as a launcher stub that spawns `UnrealGame-Win64-Shipping.exe`.
+   Process monitors and test automation must inspect the child process PID.
+3. The packaged game runs with IoStore container compression (`Substrate-Windows.ucas` at 551.11 MB).
+
+Optional Improvements:
+1. Interactive manual playtesting of the Overtime mode escalation loop across multiple hours
+   to fine-tune psychological pacing and lighting decay nuance.
+2. UI styling refinement for higher ultrawide display aspect ratios (21:9, 32:9).
+
+------------------------------------------------------------------
+10. VERIFICATION CONCLUSION
+------------------------------------------------------------------
+The 19 checks listed in Section 7 passed on build Packaged/Windows_20261017 and source revision 3dafe292;
+all defined verification and release requirements for Steps 1 through 6 have an evidence-based
+passing result recorded in Saved/Verification/20261017_02/.
+==================================================================

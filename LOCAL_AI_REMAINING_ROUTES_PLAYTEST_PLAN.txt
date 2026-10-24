@@ -1,0 +1,179 @@
+===============================================================================
+SUBSTRATE - NEXT STEPS: FULL ROUTE PLAYTEST AND REGRESSION REPAIRS
+Date: 2026-10-18
+Workspace: D:\Projects\Substrate
+===============================================================================
+
+OBJECTIVE
+Test all intended player routes in the working packaged game, repair reproduced
+defects, and establish a reliable baseline before adding upgrades.
+
+CONFIRMED STARTING POINT
+The user confirmed "its fixed" after inspecting/testing the restored crossing.
+The running build was identified as:
+D:\Projects\Substrate\Packaged\Windows_StoneCrossingFixed_20261018_114140\Substrate.exe
+The restored stair-bridge was also visually observed in that running build.
+Record this as user-confirmed resolution of the reported crossing problem.
+It does not establish that every route, edge case or gameplay feature passes.
+
+Reference materials:
+- LOCAL_AI_STONE_CROSSING_FIX_RESULTS.txt
+- LOCAL_AI_FINAL_PACKAGED_PLAYTEST_PLAN.txt
+- LOCAL_AI_FIX_ACTUAL_BLOCKED_STAIRS.txt
+Treat their results as evidence to inspect, not blanket proof of completion.
+
+1. PRESERVE THE WORKING BASELINE
+-------------------------------------------------------------------------------
+Keep the entire Windows_StoneCrossingFixed_20261018_114140 package unchanged.
+Do not replace it, delete it, or reuse its directory for a new build.
+Record its launcher, child executable and content-container hashes in a new
+evidence directory: Saved/Verification/route_playtest_<timestamp>/.
+Record current source revision, dirty files, engine version and configured maps.
+Do not assume current unsaved editor content matches the working package.
+Preserve user saves and uncommitted work. Back up affected source assets before
+editing them; include external actor packages if relevant to the actual map.
+
+Begin with the existing package. Do not rebuild merely to start testing.
+
+2. MAP THE ACTUAL PLAYABLE ROUTES
+-------------------------------------------------------------------------------
+Inspect the current map and progression rules. Create route_inventory.txt with
+one ID for each intended connection between areas. Include start and end
+landmarks, map/sublevel, expected access condition, and screenshot references.
+Use coordinates only when obtained from the actual map; never guess them.
+
+Cover at least:
+- Spawn/entry airlock to the main exploration routes.
+- Previously repaired east metal stairs, both directions.
+- Restored stone slabs and double stair-bridge beneath the large pipes.
+- Both banks/approaches of the crossing and connecting corridors.
+- Remaining stairs, ramps, door thresholds, platforms and narrow passages.
+- Inspection targets/terminals and intended Sector D connections.
+- Locked gates and routes opened by normal progression.
+
+Identify genuine dead ends and decorative surfaces separately from intended
+routes. Never remove a bridge or rail just because a scripted waypoint hits it.
+Check whether the waypoint is inside the intended walkable corridor first.
+
+3. WALK EVERY ROUTE IN THE EXACT PACKAGED BUILD
+-------------------------------------------------------------------------------
+Use normal player input, the shipping character and normal movement settings.
+Reach each route through gameplay. Test forward and reverse travel where the
+design permits it. For each route:
+1) Walk through the center without jumping around an obstruction.
+2) Try ordinary angled approaches and turns at entries/exits.
+3) Test supported running movement and normal stops on landings.
+4) Pause on each walking surface and cross its seams to detect fall-through.
+5) Check overhead clearance and transitions between stairs and floor.
+6) Observe unexpected falls, snagging, invisible walls, missing geometry,
+   unwanted rescue teleports and inaccessible required interaction targets.
+
+Recheck the repaired crossing specifically: doorway -> near slabs -> stairs ->
+bridge deck -> far slabs -> corridor, then return. Test accessible slab seams
+beside the stairs without deliberately walking off the canal edge.
+Keep legitimate water hazards and protective railings working as intended.
+
+Capture continuous video if available, otherwise labeled before/after images
+and explicit tester observations. Record build identity and method per result.
+Internal teleportation, setting actor positions, floor traces, collision flags,
+PIE movement, process lifetime and successful packaging do not prove packaged
+player traversal. They can support diagnosis and must be labeled separately.
+
+If tools cannot control or observe packaged play, complete the route inventory
+and independent inspection, then provide a short landmark-based manual test
+list. Mark remaining runtime rows BLOCKED or NOT RUN. Do not invent passes.
+
+4. REPAIR ONLY REPRODUCED DEFECTS
+-------------------------------------------------------------------------------
+For each failure, create a defect record with route ID, reproduction steps,
+expected/actual behavior, screenshot/video, map and exact affected component.
+Inspect the owning level, transforms, collision shape/responses, runtime
+visibility, streaming/loading state and any construction/gameplay code that
+changes the component. Identify the cause before choosing a repair.
+
+Make the smallest repair that restores the intended route:
+- Restore accidentally disabled collision on actual walking surfaces.
+- Restore misplaced/missing original crossing geometry using reliable history.
+- Correct defective collision shapes or transitions locally when necessary.
+- Preserve genuine drop protection, original route design and water recovery.
+
+Do not apply blanket BlockAll to the whole map, disable all rail collision,
+move suspected blockers below the map, or increase player step height/capsule
+settings globally to hide a local geometry defect. Do not create invisible
+floors across open water to conceal a missing bridge. Do not rerun old repair
+scripts without reading their mutations and confirming current actor identity.
+
+Existing crossing identifiers are investigative hints, not deletion targets:
+Bridge: StaticMeshActor_3643.
+Slabs: StaticMeshActor_2700, 2713, 3111, 3115.
+Verify identities and current state before touching them. Preserve this fix.
+
+Save intended assets, compile affected Blueprints if changed, and reopen/check
+the saved map. Verify the repaired route in PIE before making a new package.
+Keep a change manifest and precise rollback locations for every modified asset.
+
+5. PACKAGE ONLY WHEN SOURCE CHANGES REQUIRE IT
+-------------------------------------------------------------------------------
+Use a new output directory: Packaged/Windows_RouteValidated_<timestamp>/.
+Save build command, output, warnings, exit code and source manifest. Record
+launcher/child executable paths and content hashes. Never overwrite baseline.
+Launch that exact new package and rerun repaired routes plus the stone crossing,
+east stairs, spawn/controls and any other routes affected by shared assets.
+Carry forward other evidence only with its original build identity and a stated
+reason it remains relevant; do not relabel old results as new-package tests.
+
+6. CHECK THE BASIC GAMEPLAY LOOP AFTER ROUTES PASS
+-------------------------------------------------------------------------------
+Continue the applicable checklist in LOCAL_AI_FINAL_PACKAGED_PLAYTEST_PLAN.txt:
+- Reach targets, use normal terminal inspection/PASS/FLAG controls.
+- Complete two normal rounds; check incomplete submission and recovery.
+- Verify intended airlock locking/unlocking and transit.
+- Check supported save/resume, settings persistence and normal menu quit.
+- Record visible performance problems and actual audio observations if possible.
+Report missing features and untested items explicitly. Do not add new feature
+systems during this task just to turn an unsupported test into PASS.
+
+7. DELIVER AN EVIDENCE-BASED RESULT
+-------------------------------------------------------------------------------
+Write LOCAL_AI_REMAINING_ROUTES_PLAYTEST_RESULTS.txt in the project root with:
+1) Exact tested build(s), hashes, source state and evidence directory.
+2) Route matrix: ID | landmarks | direction | expected | observed | status |
+   tester/method | build | evidence reference.
+3) Defects found, root causes, exact changes and rollback locations.
+4) Regression results for the restored crossing and east metal stairs.
+5) Basic gameplay results, remaining blockers and tests not performed.
+6) Exact executable to run next; keep the working baseline available.
+
+Use PASS / FAIL / BLOCKED / NOT RUN. A user-confirmed observation must be
+attributed to the user with its actual scope. Do not claim all routes passed
+from a few sampled points or say release-ready while required checks remain.
+
+FINISH CRITERIA
+Every inventoried intended route has a result. All reproduced progression
+blockers are repaired and retested in the final candidate, or explicitly remain
+open. The stone crossing and east stairs have not regressed. The report clearly
+distinguishes completed checks from remaining work.
+
+AFTER THIS TASK
+List up to five evidence-based upgrade proposals, ordered by player impact:
+for example route readability, interaction feedback, audio balance or measured
+performance issues. For each, state the observed problem, proposed change and
+acceptance check. Do not start speculative redesigns or publish/upload builds.
+The next upgrade task will be selected after reviewing these playtest results.
+
+COPY-AND-PASTE PROMPT FOR THE LOCAL AI
+-------------------------------------------------------------------------------
+Read D:\Projects\Substrate\LOCAL_AI_REMAINING_ROUTES_PLAYTEST_PLAN.txt and
+execute it. Preserve Windows_StoneCrossingFixed_20261018_114140 as the working
+baseline: the user confirmed the crossing is fixed. Inventory and physically
+playtest remaining intended routes using normal controls in the exact package.
+Repair reproduced defects with minimal changes, package separately if needed,
+and verify affected routes plus the crossing and east stairs. Write
+LOCAL_AI_REMAINING_ROUTES_PLAYTEST_RESULTS.txt with evidence and honest test
+statuses. If packaged automation is unavailable, provide specific manual checks
+and mark them pending. Finish testing before proposing upgrades.
+
+DOCUMENT STATUS
+This file is a handoff plan. Creating it did not edit game assets, run playtests,
+or produce a new build.
+===============================================================================

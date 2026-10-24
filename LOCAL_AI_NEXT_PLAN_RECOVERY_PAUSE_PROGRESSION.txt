@@ -1,0 +1,150 @@
+===============================================================================
+SUBSTRATE - NEXT PLAN: WATER RECOVERY, PAUSE MENU, ROUND COMPLETION
+Date: 2026-10-22
+Project: D:\Projects\Substrate\Substrate.uproject
+===============================================================================
+
+OBJECTIVE
+Address the remaining gameplay gaps reported in the Phase 4/5 delivery report.
+Preserve the user-confirmed floor fix. Pause additional cosmetic work until water
+recovery, pause/restart, and progression have been tested in a fresh package.
+The supplied report is a starting point, not independent proof: inspect its logs,
+scripts, current assets and runtime behavior before making changes.
+
+BASELINES TO PRESERVE
+- User-tested package: Packaged/Windows_ConfirmedFloorFix_20261022_153936
+- Latest reported polish candidate: Packaged/Windows_WalkwayVisPolish_20261022_233545
+  This candidate is not yet user-accepted merely because the baseline was accepted.
+- Slabs 267,268,269,295,296,297: retain BlockAll / QueryAndPhysics.
+- Actual repaired fall: X2039 Y4507; capsule stands around Z384.7.
+- West-bank continuation actors3803/3804/3805: preserve.
+- PointLight_25 is reported as the visibility change; inspect its saved properties
+  and before/after images. Do not add more lighting during this task.
+- Do not execute the report's collision rollback: it would reintroduce the fall.
+
+PHASE 0 - BACKUP AND VERIFY CURRENT STATE
+1. Read project instructions and inspect git status without resetting anything.
+2. Inspect the latest report's evidence files, especially:
+   Saved/Verification/mechanics_verification_observed.json
+   Saved/Polish/WalkwayEdgeVisibility/
+   Saved/CodexFallInvestigation/actual_slab_repair_manifest.json
+3. Back up the current map, relevant Blueprints and config into a new dated folder.
+   Record hashes and exact paths. Preserve both packaged baselines unchanged.
+4. Confirm startup/default map and actual engine version from project configuration.
+5. Verify the slab repair survived saving and reopening. A tool returning true is
+   not sufficient; verify disk changes, reload, and inspect runtime behavior.
+
+PHASE 1 - FIX REACHABLE WATER-RECOVERY GAPS
+Reported evidence to reproduce:
+- Central rescue works near X85 Y6900.
+- Near X1374 Y4518, the pawn remains on the canal floor without recovery.
+- A forced placement near X-4000 Y7000 falls indefinitely in the reported test.
+  Determine whether this location is reachable in normal gameplay before treating
+  it as a playable-route defect. Do not create a route to reach a synthetic test.
+
+Implementation steps:
+1. Inspect BP_CanalRescue, current trigger bounds, overlap settings, pawn filtering,
+   teleport/respawn logic and the destination. Identify why the stair basin is missed.
+2. Reproduce the stair-basin failure with an ordinary drop from an accessible edge.
+   Record position, movement state, overlap events and time spent stranded.
+3. Add or reshape narrowly scoped rescue coverage for reachable canal basins.
+   Keep the trigger below the walkable surfaces so normal walking and jumping do
+   not activate it. Preserve all floor collision and intentional water visuals.
+4. Use the existing safe destination or validated checkpoint mechanism. Validate
+   clearance and floor support there, reset fall velocity and prevent repeat-trigger
+   loops. Retain progress according to the existing game rules; document behavior.
+5. If a reachable below-world gap remains, implement a bounded fallback recovery
+   appropriate to the existing game. Do not use it to hide missing floor collision.
+6. Save, reload and retest before packaging.
+
+Acceptance:
+- Accessible stair-basin and central-canal drops both recover within a documented,
+  reasonable time bound, with no stranded pawn, repeated loop, or residual fall.
+- Repeat each accessible drop three times; verify stable destination and movement.
+- Normal walking, seam crossings and jumps over repaired slabs never trigger rescue.
+- Report editor results separately from packaged results.
+
+PHASE 2 - IMPLEMENT A SMALL PAUSE / RESUME / RESTART / QUIT MENU
+First inspect actual UI assets and input mappings; do not duplicate an existing menu
+based solely on the report's claim that only WBP_Terminal exists.
+
+Expected behavior:
+- Escape during gameplay opens the menu and pauses gameplay simulation.
+- Resume or Escape closes it and restores gameplay input, focus and mouse capture.
+- Restart uses a confirmation and starts the current run again through the existing
+  initialization path; describe which run state resets and preserve user settings.
+- Quit exits the standalone game cleanly; do not terminate the editor process.
+
+Implementation steps:
+1. Fit the existing input architecture. Ensure the menu's close/resume input works
+   while paused. Avoid duplicate widgets or accumulated input bindings on reopening.
+2. Provide readable Resume, Restart and Quit buttons with keyboard and mouse support.
+   Keep style consistent with the game; avoid unrelated UI redesign.
+3. Check interaction with the F-key terminal and E/Q fixture actions. While the pause
+   menu owns focus, these actions must not accidentally alter gameplay state.
+4. Handle restart while the terminal is raised and after recovery. Restore a usable
+   HUD, character, input mode and unpaused state without duplicate managers.
+
+Acceptance in the packaged build:
+- Open and resume five times; character control returns every time.
+- A measurable gameplay timer or moving gameplay actor actually pauses.
+- Restart creates a clean playable run; canceling restart leaves the run unchanged.
+- Menu buttons respond, cursor/focus behave correctly, and Quit closes cleanly.
+- Key delivery alone is not evidence that any of these behaviors passed.
+
+PHASE 3 - VERIFY A COMPLETE PROGRESSION LOOP
+The report says nine fixture actors exist while referring to an eight-fixture run.
+Resolve this from the game rules and RoundManager configuration. Do not delete an
+actor or change the required count merely to make those numbers match.
+
+1. Inspect the intended round rules, eligible fixtures, required count, PASS/FLAG
+   meanings and transition conditions. Write a short expected-behavior checklist.
+2. Use normal controls to raise/lower the terminal (F), submit PASS (E) and FLAG (Q)
+   at valid targets. Observe actual checklist and RoundManager changes.
+3. Verify out-of-range input does not change progress; test duplicate submissions
+   according to the intended rules. Check targets by looking direction as well as
+   distance if that is part of the implemented design.
+4. Complete one full round through its gate/transition/conclusion, then start the
+   next run or round. Confirm state resets or persists as the design specifies.
+5. If the logic fails, reproduce and fix the specific defect, then repeat the loop.
+
+Acceptance:
+A full normal-input round completes with recorded evidence. Blueprint inspection,
+calling a function directly, or finding key bindings does not prove packaged
+progression works. If direct playtesting is unavailable, label it UNVERIFIED and
+provide Murat a short checklist rather than inventing a PASS.
+
+PHASE 4 - REGRESSION TEST AND BUILD A SEPARATE CANDIDATE
+1. Run the saved eight-waypoint slab traversal test and check endpoint arrival and
+   floor support. Retest the connected route affected by any recovery changes.
+2. Save changed maps/Blueprints using a map-capable save path. Reload and verify.
+   See CODEX_ACTUAL_FALL_REPAIR.txt for the earlier per-asset map save failure.
+3. Package to a NEW folder such as:
+   Packaged/Windows_RecoveryPause_<timestamp>/
+   Never overwrite either preserved candidate.
+4. Record full build command, log, exit code, warnings by stage, source hashes and
+   artifact hashes. Restore any temporarily changed MCP configuration in finally.
+5. Launch by the exact new executable path and confirm the process path.
+6. Repeat recovery, pause/restart and progression checks in this package. Retest
+   the original fall location. Record any tests that cannot be completed.
+
+DELIVERABLES
+Create LOCAL_AI_RECOVERY_PAUSE_DELIVERY.txt with:
+- Exact executable path and build identity.
+- Changed actors, Blueprint assets and configuration, with reasons.
+- Backups and selective rollback details for THIS change, preserving floor repairs.
+- Before/after failure evidence and test results grouped by editor vs package.
+- Recovery coverage, timing, destination and progress-preservation rules.
+- Pause/restart behavior and input-focus results.
+- Actual required fixture count and full-round result.
+- Remaining issues, uncertainties and a short manual checklist for Murat.
+
+REPORTING RULES
+- Murat confirmed his tested route and jumping, not every route or every mechanic.
+- The earlier report inferred a precise route beyond what Murat explicitly stated;
+  do not add new specificity to his confirmation.
+- Distinguish observed behavior, inspected logic, automated tests and user playtests.
+- Do not call architecture 'intended' without design evidence or an explicit user
+  decision. Preserve structural collision while investigating uncertain obstacles.
+- Do not claim the whole game is complete after these limited tests.
+===============================================================================

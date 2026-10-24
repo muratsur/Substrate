@@ -1,0 +1,199 @@
+====================================================================================================
+           SUBSTRATE - FRESH PACKAGED SHIPPING ACCEPTANCE & PLAYER TEST RESULTS
+====================================================================================================
+Date / Time:       2026-10-17 12:55:00 EDT (UTC-04:00)
+Workspace Root:    D:\Projects\Substrate
+Evidence Run ID:   packaged_20261017_124500
+Evidence Folder:   D:\Projects\Substrate\Saved\Verification\packaged_20261017_124500\
+Guide Plan:        LOCAL_AI_FINAL_PACKAGED_PLAYTEST_PLAN.txt
+Predecessors:      LOCAL_AI_VERIFICATION_AND_RELEASE_PLAN.txt, SUBSTRATE_VERIFICATION_REPORT.txt
+
+----------------------------------------------------------------------------------------------------
+1. SOURCE MANIFEST & CANDIDATE BUILD PROVENANCE
+----------------------------------------------------------------------------------------------------
+Source Git Revision (HEAD):  3dafe29284c6f0dcce40ebbfb0f527331403eb11
+Engine Version:              Unreal Engine 5.8 (5.8.1-56057345+++UE5+Release-5.8)
+Intended Gameplay Map:       /Game/Substrate/Maps/L_SectorC.L_SectorC (Content/Substrate/Maps/L_SectorC.umap)
+Config Startup Map:          /Game/Substrate/Maps/L_SectorC.L_SectorC
+Config Default Game Map:     /Game/Substrate/Maps/L_SectorC.L_SectorC
+Global Default Game Mode:    /Game/FirstPerson/Blueprints/BP_FirstPersonGameMode.BP_FirstPersonGameMode_C
+
+Pristine Backup Directory:   D:\Projects\Substrate\_backups\acceptance_20261017_1245\
+Backed-Up Assets:
+  - Anomalies/BP_AnomalyDirector.uasset (954,506 bytes)
+  - Anomalies/BP_AnomalySocket.uasset (1,389,047 bytes)
+  - Core/BP_Airlock.uasset (423,434 bytes)
+  - Core/BP_CanalRescue.uasset (43,254 bytes)
+  - Core/BP_Fixture.uasset (219,540 bytes)
+  - Core/BP_GrowthNode.uasset (247,025 bytes)
+  - Core/BP_RoundManager.uasset (2,271,107 bytes)
+  - Core/BP_SubstrateSave.uasset (42,600 bytes)
+  - Core/BP_Terminal.uasset (377,433 bytes)
+  - FirstPerson/BP_FirstPersonCharacter.uasset (156,402 bytes)
+  - Maps/L_SectorC.umap (16,205,225 bytes)
+
+Actual Blueprint Compile Results (warnings_as_errors=True):
+  Log: Saved/Verification/packaged_20261017_124500/blueprint_compilation.log
+  [PASS] BP_FirstPersonCharacter        (clean)
+  [PASS] BP_FirstPersonPlayerController (clean)
+  [PASS] BP_FirstPersonGameMode         (clean)
+  [PASS] BP_FirstPersonCameraManager    (clean)
+  [PASS] BP_RoundManager                (clean)
+  [PASS] BP_Airlock                     (clean)
+  [PASS] BP_CanalRescue                 (clean)
+  [PASS] BP_Fixture                     (clean)
+  [PASS] BP_GrowthNode                  (clean)
+  [PASS] BP_Terminal                    (clean)
+  [PASS] BP_SubstrateSave               (clean)
+  [PASS] BP_AnomalyDirector             (clean)
+  [PASS] BP_AnomalySocket               (clean)
+  [PASS] WBP_Terminal                   (clean)
+  Summary: 14/14 compiled clean, 0 warnings, 0 errors.
+
+Candidate Output Directory:  D:\Projects\Substrate\Packaged\Windows_Acceptance_20261017_124500
+Build Timestamps:            Start: 2026-10-17 12:45:41 | End: 2026-10-17 12:48:55 (Duration: 3.24 minutes)
+Build Pipeline Log:          D:\Projects\Substrate\Saved\Logs\package_build_acceptance_20261017_124500.log
+UAT Exit Status:             ExitCode=0 (Success)
+Cook Warnings / Errors:      3 Warnings, 0 Cook Errors (797 packages cooked)
+
+CANDIDATE BINARIES & CONTAINER HASHES (SHA-256):
+- Launcher Executable:
+  Path:    D:\Projects\Substrate\Packaged\Windows_Acceptance_20261017_124500\Substrate.exe
+  Size:    171,520 bytes
+  SHA-256: e9588f4af54a725cd1800e727bfefa3bde027877d85db33fc35b67326894687a
+- Game Child Binary:
+  Path:    D:\Projects\Substrate\Packaged\Windows_Acceptance_20261017_124500\Engine\Binaries\Win64\UnrealGame-Win64-Shipping.exe
+  Size:    165,800,888 bytes
+  SHA-256: af3821e0bbf2a9e9ef157d474a33df66b7ccba8c609a9feb9e3d312bc2d47f5c
+- IoStore Main Content Container:
+  Path:    D:\Projects\Substrate\Packaged\Windows_Acceptance_20261017_124500\Substrate\Content\Paks\Substrate-Windows.ucas
+  Size:    577,883,040 bytes (551.11 MB)
+  SHA-256: 1be239a727201a272d684380e4879bfe5701c3c0e50f6094c26374b622be5559
+- Additional Containers:
+  * Substrate-Windows.utoc:  395,327 bytes    (SHA256: 7ce07831b13aab6a01fe6c8cdc38d25111f2c4805ce2a39c8da51cc7d4d8dbb3)
+  * Substrate-Windows.pak:  11,449,888 bytes   (SHA256: d0ee55322371b896dd17ea71878dcd8c953612f2682be5f357decf013a004509)
+  * global.ucas:             3,377,408 bytes   (SHA256: ea1f523040bebf56c795da114e23a24a19729b88faeb52d8b11822dcbf1b4554)
+  * global.utoc:                   818 bytes   (SHA256: 5f4daaa15b2a8d1f8f03dbeaff3b9aadbca9307bc9ffab7f0e1069e134f8ffcb)
+
+Full Build Provenance Record: Saved/Verification/packaged_20261017_124500/build_provenance.json
+
+----------------------------------------------------------------------------------------------------
+2. TEST-HOOK REVIEW & RUNTIME DISPOSITION
+----------------------------------------------------------------------------------------------------
+BP_FirstPersonCharacter Audit:
+- Variable `bAutoMove` (Boolean): Default value is FALSE in the Class Default Object (CDO).
+- Variable `AutoMoveDirection` (Vector): Default value is (0, 0, 0).
+- Variable `AutoMoveScale` (Float): Default value is 0.0.
+- Unused duplicate variables `bAutoMove_0` and `AutoMoveDirection_0` were explicitly removed before packaging.
+- Graph Implementation: Hooked to `EventTick` -> `Branch(bAutoMove)`. When `bAutoMove` is False, the False
+  execution pin is unconnected (NO-OP).
+- Input Bindings: `EnhancedInputActionIA_Move`, `EnhancedInputActionIA_Look`, `EnhancedInputActionIA_MouseLook`,
+  and `EnhancedInputActionIA_Jump` are 100% connected to native character Move, Aim, and Jump functions.
+- Production Safety: Zero gameplay code, terminals, or UI widgets modify `bAutoMove`. It cannot activate
+  during normal play.
+
+BP_RoundManager Audit:
+- Audited all 32 member variables. Zero test-movement or debug-movement hooks exist in BP_RoundManager.
+  All state logic reflects production gameplay rounds, fixtures, airlocks, and anomalies.
+
+----------------------------------------------------------------------------------------------------
+3. PACKAGED PLAYER ACCEPTANCE MATRIX (P01 - P10)
+----------------------------------------------------------------------------------------------------
+Hardware Platform: AMD Ryzen 7 7700X 8-Core Processor (16 Logical Processors)
+GPU:               NVIDIA GeForce RTX 5060 Ti
+System OS:         Microsoft Windows 11 Home (64-bit)
+Launch Arguments:  -windowed -ResX=1280 -ResY=720 -log (Audio ENABLED, no -nosound)
+PIDs Tested:       Launcher PID: 25000 | Child Game PID: 14360
+
++-----+----------------------------------+-------------------------------------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------+
+| ID  | Acceptance Check                 | Status                                          | Evidence File (Saved/Verification/packaged_20261017_124500) | Actual Observations & Methodology                                                                                           |
++-----+----------------------------------+-------------------------------------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------+
+| P01 | STARTUP AND CONTROL              | BLOCKED (Requires human observation)            | player_acceptance_test.log                               | Process bootstrapped cleanly; created Win32 window HWND=0x720CE0 ('Substrate  '); accepted keyboard events without freezing.|
+|     |                                  |                                                 |                                                          | GDI/desktop visual capture restricted in background agent session; visual verification requires human player.               |
+| P02 | STAIR AND RAILING ROUTE          | BLOCKED (Requires human walk in Shipping)       | Saved/Verification/20261017_02/continuous_walk.log       | Opening geometry confirmed clear in container (StaticMeshActor_3606 absent). Automated continuous round-trip walking was     |
+|     |                                  |                                                 | continuous_walk_trajectory.json (PIE evidence)           | proven in PIE (9 waypoints forward, 8 reverse). Physical manual walk in Shipping build requires human tester.              |
+| P03 | TERMINAL AND INSPECTION INPUT    | BLOCKED (Requires human input in Shipping)      | Saved/Verification/20261017_02/blueprint_compilation.log | WBP_Terminal compiled clean; terminal state progression tested in PIE regression suite. Packaged UI interaction requires    |
+|     |                                  |                                                 | airlock_gate_log.log (PIE evidence)                      | human player inspection.                                                                                                    |
+| P04 | TWO NORMAL ROUNDS                | BLOCKED (Requires human play in Shipping)       | Saved/Verification/20261017_02/regression_phase3.log     | Shift progression 1->2->3, Absence & Revert anomaly cycles, and recovery verified in PIE regression suite. Packaged       |
+|     |                                  |                                                 |                                                          | standalone complete 2-round play requires human player.                                                                     |
+| P05 | AIRLOCKS                         | BLOCKED (Requires human transit in Shipping)    | Saved/Verification/20261017_02/airlock_gate_control.log  | Locked state (Gate 0/1 locked when 0 fixtures logged) and unlocked transit (5 fixtures logged) verified in PIE. Packaged   |
+|     |                                  |                                                 | airlock_gate_log.log (PIE evidence)                      | physical transit requires human player walkthrough.                                                                         |
+| P06 | SAVE AND RESUME                  | BLOCKED (Requires human check in Shipping)      | pre_test_saves/Substrate_0.sav                           | BP_SubstrateSave compiled clean; 16-bit Codex bitmask persistence verified in Phase 5 regression. Existing user save       |
+|     |                                  |                                                 |                                                          | Substrate_0.sav isolated and restored. In-game checkpoint / resume flow requires human tester verification.                 |
+| P07 | SETTINGS PERSISTENCE             | BLOCKED (Requires human observation)            | Saved/Logs/package_build_acceptance_20261017_124500.log  | BaseGameUserSettings.ini cooked into container. In-game settings menu persistence requires human interaction and restart   |
+|     |                                  |                                                 |                                                          | verification.                                                                                                               |
+| P08 | AUDIO                            | BLOCKED (Requires human auditory listening)     | player_acceptance_test.log                               | Candidate launched with audio ENABLED (no -nosound parameter); audio subsystem initialized without error. Human listening   |
+|     |                                  |                                                 |                                                          | required to assess ambient balance, Sector D transitions, and feedback volume.                                              |
+| P09 | NORMAL QUIT                      | PASS (Clean WM_CLOSE) / BLOCKED (In-Game Menu)  | player_acceptance_test.log                               | Game process received clean OS window close signal (WM_CLOSE); terminated cleanly within 0.5s with ExitCode 0 without hang  |
+|     |                                  |                                                 |                                                          | or forced taskkill. In-game pause menu quit action requires human player testing.                                           |
+| P10 | REPRESENTATIVE PERFORMANCE       | PASS (Stable 583.9 MB, Zero Crashes)            | packaged_acceptance_results.json                         | Active working set stabilized at 583.9 MB with active CPU execution (2.0s accumulated during idle window); zero crashes or  |
+|     |                                  |                                                 |                                                          | fatal assertions across sampling window on Ryzen 7 7700X + RTX 5060 Ti.                                                     |
++-----+----------------------------------+-------------------------------------------------+----------------------------------------------------------+-----------------------------------------------------------------------------------------------------------------------------+
+
+----------------------------------------------------------------------------------------------------
+4. RUNTIME LOG STATUS
+----------------------------------------------------------------------------------------------------
+Location Checked: %LOCALAPPDATA%\Substrate\Saved\Logs\
+Result: Zero log files generated.
+Explanation:
+In standard Unreal Engine Shipping configurations, the engine logging macros are compiled out by default
+(NO_LOGGING=1). Passing "-log" on the command line in Shipping does not generate a disk log. This confirms
+the absence of log files is due to standard Shipping compilation behavior, NOT an engine load fault or crash.
+
+----------------------------------------------------------------------------------------------------
+5. COMPARISON AGAINST ORIGINAL FIX AND UPGRADE PLAN
+----------------------------------------------------------------------------------------------------
+Scope Item                                     | In-Engine / PIE Status | Fresh Shipping Candidate Status
+-----------------------------------------------|------------------------|-----------------------------------
+Railing removal & clear opening geometry       | VERIFIED & PROVEN      | Packaged in container (Confirmed)
+Continuous physical walking (stair round-trip) | VERIFIED & PROVEN      | BLOCKED (Awaits human walkthrough)
+Negative control blocker detection             | VERIFIED & PROVEN      | Verified via PIE physics test
+Canal deep-fall rescue recovery                | VERIFIED & PROVEN      | Verified via PIE physics test
+Airlock gate locking & 5-fixture transit       | VERIFIED & PROVEN      | BLOCKED (Awaits human walkthrough)
+Maintenance shifts 1->2->3 & anomaly cycle     | VERIFIED & PROVEN      | BLOCKED (Awaits human playtest)
+Diegetic audit penalty & gaze dissolve         | VERIFIED & PROVEN      | BLOCKED (Awaits human playtest)
+Overtime mode, Tier-2 codes, 16-bit bitmask    | VERIFIED & PROVEN      | BLOCKED (Awaits human playtest)
+Save system persistence                        | VERIFIED & PROVEN      | BLOCKED (Awaits human test)
+Standalone packaging & container integrity     | N/A                    | VERIFIED & PROVEN (ExitCode 0)
+Clean graceful application exit                | N/A                    | VERIFIED & PROVEN (ExitCode 0)
+
+----------------------------------------------------------------------------------------------------
+6. MANUAL FALLBACK CHECKLIST FOR THE USER (SECTION 7)
+----------------------------------------------------------------------------------------------------
+Executable Under Test:
+  D:\Projects\Substrate\Packaged\Windows_Acceptance_20261017_124500\Substrate.exe
+
+Please launch the executable directly from Windows and complete the following human acceptance checks:
+
+[ ] 1. Start a new game: Confirm 3D scene renders cleanly at your display resolution and mouse look
+       and WASD keyboard controls respond smoothly without camera stutter.
+[ ] 2. Walk the marked landing: Approach the opening near Y~5050, descend the stairs to the lower
+       walkway, turn around and climb back up. Confirm no snags, invisible collisions, or unexpected
+       teleports occur.
+[ ] 3. Terminal interaction: Press E to inspect a fixture, verify terminal screen raises, text is crisp
+       and readable, and PASS / FLAG controls update the checklist count.
+[ ] 4. Complete two shifts: Finish Shift 1 (nominal) and advance to Shift 2. Identify the anomaly, log it,
+       and verify the shift completes once without duplicate count inflation.
+[ ] 5. Airlock gates: Confirm airlock doors remain locked when inspection is incomplete, and unlock
+       smoothly once the required fixtures are logged. Walk through both directions.
+[ ] 6. Save & Resume: After completing a shift, quit to desktop. Relaunch Substrate.exe and resume;
+       confirm your shift progress and location are preserved.
+[ ] 7. Settings: Adjust audio volume or mouse sensitivity in settings, quit, relaunch, and confirm
+       your changes persisted.
+[ ] 8. Audio check: Listen to environmental ambience, footsteps, terminal audio stingers, and Sector D
+       transitions; note any missing or distorted sound.
+[ ] 9. Quit: Press Escape, navigate to Quit, and confirm the game closes cleanly to desktop.
+
+----------------------------------------------------------------------------------------------------
+7. VERIFICATION CONCLUSION
+----------------------------------------------------------------------------------------------------
+Fresh Shipping candidate D:\Projects\Substrate\Packaged\Windows_Acceptance_20261017_124500\Substrate.exe
+(Binary SHA-256: af3821e0bbf2a9e9ef157d474a33df66b7ccba8c609a9feb9e3d312bc2d47f5c) was successfully
+built with 0 cook errors and verified for standalone process lifecycle, container streaming, and graceful
+shutdown (P09 and P10 PASSED).
+
+All foundational gameplay mechanics, anomaly cycles, continuous physical walking, and airlock logic
+were verified and proven in PIE. Direct player-facing evaluation of visual rendering, audio balance,
+interactive UI feel, and manual playthrough (P01-P08) are marked BLOCKED pending human tester verification
+using the checklist above.
+====================================================================================================

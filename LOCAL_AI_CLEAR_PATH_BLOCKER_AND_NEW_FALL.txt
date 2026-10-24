@@ -1,0 +1,85 @@
+SUBSTRATE - CLEAR-PATH BLOCKER AND NEW FALL LOCATION
+Date: 2026-10-19
+
+USER OBSERVATIONS
+The user previously confirmed the earlier spawn/bridge falls were fixed.
+Do not undo those repairs. Two additional failures are now reported:
+1. Cannot walk forward on apparently clear floor toward red-lit stairs.
+   User explicitly clarified: "there is nothing front of me".
+2. Another fall, with the camera beneath concrete geometry near metal stairs.
+These are user-reported failures. The screenshots show the blocked view and
+fall aftermath; they do not identify the responsible actor or exact cause.
+Do not assume both screenshots depict the same position or the same defect.
+
+REFERENCE IMAGES
+Blocked approach, earlier view:
+C:\Users\Murat\Pictures\Screenshots\Screenshot 2026-10-19 201226.png
+Blocked approach, clarified view:
+C:\Users\Murat\AppData\Local\Temp\codex-clipboard-1e850cf1-d1c6-41d1-8188-36e4730d3ba2.png
+New fall aftermath:
+C:\Users\Murat\Pictures\Screenshots\Screenshot 2026-10-19 212546.png
+
+FIRST: IDENTIFY THE ACTUAL SCENE
+Record running executable, content hashes, map and current progression state.
+Last recommended candidate: Windows_UserFallsFixed_20261019_210942.
+This is a candidate identity hint, not proof of the screenshot's build.
+Match landmarks and camera direction to the actual level; do not guess actor
+IDs from earlier reports. Keep previous packages, saves and source work intact.
+
+BLOCKER INVESTIGATION
+Reproduce the stop with normal movement toward the pictured stairs. Record
+player/capsule position, facing direction and intended travel direction.
+In a matching diagnostic session, inspect the actual blocking contact using
+player-sized sweeps and collision visualization. Record hit actor, component,
+impact point/normal, collision shape, Pawn response and owning level.
+Consider oversized simple collision on nearby meshes, hidden collision volumes,
+floor lips, overhead capsule contact and progression blockers as hypotheses.
+Do not conclude nearby visible rubble is responsible without a blocking hit.
+If progression is intentional, verify its unlock condition in actual gameplay
+and make the restriction understandable through an appropriate visible cue.
+If unintended, repair only the offending collision/placement. Do not disable
+all collision in the area or remove gates merely to make a test pass.
+
+FALL INVESTIGATION
+Find the actual last safe location and first unsupported step matching image 2.
+Reproduce from the walking surface above, not by placing the pawn underneath.
+Record floor contact, component, capsule position and movement mode throughout
+the transition. Distinguish falling through visible floor, stepping off an edge,
+slipping through a joint, and a gameplay teleport to an unsafe destination.
+Check runtime overrides, streaming and collision response/geometry on that
+specific surface. Do not infer missing collision from a picture alone.
+If the entry point cannot be located, request one precise landmark or pre-fall
+position from the user rather than modifying guessed geometry.
+
+REPAIR AND REGRESSION CHECKS
+Back up affected assets. Make the smallest cause-supported repair, verify tool
+responses and read-back, save the owning assets, and reload to check persistence.
+Preserve the working spawn, restored bridge, both bridge exit directions and
+legitimate drop protection. Do not blanket-enable BlockAll across decorative
+meshes, move blockers underground or add invisible floors across water.
+Test continuous travel toward and up/down the red-lit stairs in both directions.
+Test the newly identified fall transition repeatedly and at angled approaches.
+Assert destination arrival as well as no falls: a stationary blocked player
+must not PASS. Monitor minimum height and unexpected rescue/teleport events;
+final height alone cannot prove a safe traversal.
+Retest the earlier fixed spawn and bridge scenarios after any shared changes.
+
+PACKAGE AND REPORT
+Build into a new candidate directory only after verified source repairs.
+Verify these exact movements with visible gameplay in that package. Keep PIE,
+diagnostic and packaged evidence separate. Camera-positioned editor images,
+screenshot color counts and blind keypresses are not packaged route evidence.
+If packaged observation cannot be performed, mark it NOT VERIFIED and provide
+the exact executable with these two specific manual checks.
+Write LOCAL_AI_CLEAR_PATH_BLOCKER_AND_NEW_FALL_RESULTS.txt containing separate
+causes, hit components, exact repairs/backups, test outcomes and build identity.
+Do not declare all routes fixed based on these two tests.
+
+PROMPT FOR LOCAL AI
+Execute D:\Projects\Substrate\LOCAL_AI_CLEAR_PATH_BLOCKER_AND_NEW_FALL.txt.
+The user is blocked on clear floor toward red-lit stairs and has separately
+fallen beneath geometry near metal stairs. Identify both exact locations and
+causes before editing. Preserve their previously confirmed fixes. Produce a
+separate candidate with honest verification and a concise results file.
+
+STATUS: Handoff document only. No game assets changed; causes remain unverified.

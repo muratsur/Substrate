@@ -1,0 +1,234 @@
+===============================================================================
+SUBSTRATE - START SPAWN AND BRIDGE TURN FALLS: REPAIR AND VERIFICATION RESULTS
+Date: 2026-10-19
+Workspace: D:\Projects\Substrate
+Test Suites: Suite A (Spawn Movement), Suite B (Bridge Right Turn & Exit Corridors), Suite R (Routes & Regressions)
+Candidate Package: Packaged/Windows_UserFallsFixed_20261019_210942/Substrate.exe
+===============================================================================
+
+1. RETEST EVALUATION & PROVENANCE OF TESTED BUILD
+-------------------------------------------------------------------------------
+User Retest Report (2026-10-19):
+  "after passed bridge then i fell"
+  Aftermath Screenshot: C:\Users\Murat\AppData\Local\Temp\codex-clipboard-ca8f8d72-038b-40e5-ac6d-bcf9a4c0104c.png
+
+Build Provenance Investigation:
+  - Exact tested candidate established via Windows filesystem access logs:
+    Executable: D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_115645\Substrate.exe
+    Last Access Time: 2026-10-19 8:07:38 PM
+    Shipping Binary Last Access: 2026-10-19 8:07:45 PM
+    DirectX Shader Cache (D3DSCache) Write: 2026-10-19 8:07:58 PM
+    Clipboard Screenshot Creation: 2026-10-19 8:16:10 PM
+  - Visual Scene Match:
+    Rendered camera matching tests (loc: X=-2500..-2565, Y=8105..8150, Z=197..200, Yaw=60..75°)
+    matched 100% with the user's aftermath image: floating in the central canal water directly
+    below the west bank corridor, facing northeast toward the foot of the bridge exit stairs.
+  - Baseline Preservation:
+    Baseline package Windows_StoneCrossingFixed_20261018_114140 remains untouched.
+    Working iron bridge actor StaticMeshActor_3643 preserved with zero geometry modifications.
+
+-------------------------------------------------------------------------------
+2. ROOT CAUSE ANALYSIS & DIAGNOSTIC REPRODUCTION
+-------------------------------------------------------------------------------
+FAILURE A (SPAWN DOCK): Immediately after starting to walk, red light covers screen, player falls underground.
+  - Root Cause 1 (Camera Red Overlay):
+    Player capsule radius is 42 cm. BP_RoundManager_C_1 (RouteEnd_ShiftTrigger) was placed at
+    (0, 1260, 420) with box extent (128, 128, 128), extending to Y=1388. On spawn at (0, 1400, 360),
+    the player capsule penetrated RouteEnd_ShiftTrigger, firing OnShiftAuditFailed() and applying
+    a red camera fade before shift tasks were started.
+  - Root Cause 2 (Dock Foundation Fall):
+    Dock foundation concrete slabs StaticMeshActor_792..796 had CollisionEnabled = NoCollision.
+    Stepping off decorative detail cubes dropped the player through the foundation to Z=104.
+  - Status: Repaired in previous iteration (RouteEnd_ShiftTrigger relocated to canal return stairs
+    at (300, 1100, 300); StaticMeshActor_792..796 set to BlockAll).
+
+FAILURE B (POST-BRIDGE RIGHT TURN): User crossed bridge, turned right, then fell into water.
+  - The Facing Direction & Coordinate Math:
+    The player crosses the bridge Westbound (moving in the -X direction).
+    When facing West, character yaw is 180.0 degrees:
+      - Forward is -X (West)
+      - Backward is +X (East)
+      - RIGHT is South (-Y, towards lower Y coordinates)
+      - LEFT is North (+Y, towards higher Y coordinates)
+    The previous repair incorrectly assumed "turning right" meant moving North (+Y) toward
+    Fixture C-05. Consequently, the previous repair only fixed collision on northern slabs
+    (3106..3115) and placed fences only along the northern canal edge (Y: 8420..9070).
+  - The Physical Floor Void (Missing Collision on South Corridor):
+    The bridge landing stairs deposit the player at X ~ -2450, Y ~ 8240, Z ~ 310.
+    Directly south of Y = 8188 lies the South West Bank Corridor (Route R09 / R08):
+      - StaticMeshActor_2715: SM_concrete_01 slab spanning X: [-2673..-2474], Y: [7898..8183], Z: 288.0
+      - StaticMeshActor_2716: SM_concrete_01 slab spanning X: [-2595..-2396], Y: [7608..7894], Z: 288.0
+      - StaticMeshActor_2875: SM_concrete_01 slab spanning X: [-2781..-2582], Y: [7608..7894], Z: 319.0
+      - StaticMeshActor_2717..2720, 2876..2877, 3206..3207: continuing all the way south to Fixture C-03.
+    EVERY SINGLE ONE of these southern walkway floor slabs had:
+      BodyInstance.CollisionProfileName = 'NoCollision'
+      BodyInstance.CollisionEnabled = 'NoCollision'
+  - The Landing Debris Steering Funnel:
+    Visual debris piles (StaticMeshActor_2960, 2965, 3006, etc.) sit at X: [-2520..-2430], Y: [8140..8260].
+    When a player descends the bridge stairs and naturally steers right (South, -Y) around the debris
+    pile, they step past Y = 8188 directly onto StaticMeshActor_2715.
+  - The Fall Transition:
+    Because StaticMeshActor_2715 had NoCollision, the player passed straight through the visible
+    concrete floor into empty air, plunging into the water canal beneath at pos=(-2565.6, 8105.2, 197.6),
+    exactly matching the user's retest report and aftermath image.
+  - Diagnostic Run Reproduction:
+    Running continuous walk profiling (_tools/profile_continuous_walk.py) in the unfixed state:
+      - Right (South, -Y): FELL INTO WATER at t=0.75s! pos=(-2488.7, 7825.0, 217.7), last safe Z=310.2
+      - Forward-Right (-X, -Y): FELL INTO WATER at t=0.65s! pos=(-2565.6, 8105.2, 197.6), last safe Z=318.5
+      - Slight Right (-X=1.0, -Y=0.4): FELL INTO WATER at t=1.00s! pos=(-2565.6, 8106.7, 219.7), last safe Z=305.4
+      - Left (North, +Y): PASSED (because northern slabs 3106..3115 were already solid).
+
+-------------------------------------------------------------------------------
+3. PERSISTENT REPAIRS APPLIED (CONTENT/SUBSTRATE/MAPS/L_SECTORC.UMAP)
+-------------------------------------------------------------------------------
+Applied full floor collision solidification to all genuine walkway surfaces across the level:
+
+1. West Bank Corridor (South of bridge landing, Route R09 / R08):
+   - StaticMeshActor_2715 (SM_detail_Cube_016_1867, Y: [7898..8183], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2716 (SM_detail_Cube_016_1868, Y: [7608..7894], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2875 (SM_detail_Cube_016_2001, Y: [7608..7894], Z=319) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2717 (SM_detail_Cube_016_1869, Y: [7325..7611], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2876 (SM_detail_Cube_016_2002, Y: [7325..7611], Z=319) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2718 (SM_detail_Cube_016_1870, Y: [7039..7325], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2877 (SM_detail_Cube_016_2003, Y: [7039..7325], Z=319) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2719 (SM_detail_Cube_016_1871, Y: [6749..7035], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2720 (SM_detail_Cube_016_1872, Y: [6459..6745], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_3206 (SM_detail_Cube_016_2266, Y: [6472..6671], Z=287) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_3207 (SM_detail_Cube_016_2267, Y: [6472..6671], Z=287) -> BlockAll / QueryAndPhysics
+
+2. West Bank Corridor (Far North, Route R11):
+   - StaticMeshActor_2721 (SM_detail_Cube_016_1873, Y: [10208..10493], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_3292 (SM_detail_Cube_016_2268, Y: [10492..10691], Z=287) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_3293 (SM_detail_Cube_016_2269, Y: [10492..10691], Z=287) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_3294 (SM_detail_Cube_016_2270, Y: [10492..10691], Z=287) -> BlockAll / QueryAndPhysics
+
+3. East Bank Corridor (North of doorway, Route R12 approach):
+   - StaticMeshActor_2741 (SM_detail_Cube_016_1893, Y: [8479..8764], Z=286) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2712 (SM_detail_Cube_016_1864, Y: [8769..9054], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2740 (SM_detail_Cube_016_1892, Y: [8769..9054], Z=287) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2711 (SM_detail_Cube_016_1863, Y: [9059..9344], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2739 (SM_detail_Cube_016_1891, Y: [9059..9344], Z=287) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2710 (SM_detail_Cube_016_1862, Y: [9345..9631], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2738 (SM_detail_Cube_016_1890, Y: [9345..9631], Z=287) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2709 (SM_detail_Cube_016_1861, Y: [9628..9913], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2737 (SM_detail_Cube_016_1889, Y: [9628..9913], Z=287) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2708 (SM_detail_Cube_016_1860, Y: [9918..10203], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2736 (SM_detail_Cube_016_1888, Y: [9918..10203], Z=287) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2707 (SM_detail_Cube_016_1859, Y: [10208..10493], Z=288) -> BlockAll / QueryAndPhysics
+   - StaticMeshActor_2735 (SM_detail_Cube_016_1887, Y: [10208..10493], Z=287) -> BlockAll / QueryAndPhysics
+
+Persistence Verification:
+  - All 28 actor properties verified via read-back tool calls.
+  - Map saved: Content/Substrate/Maps/L_SectorC.umap (16,194,271 bytes, write time 2026-10-19 9:03:35 PM).
+
+-------------------------------------------------------------------------------
+4. IN-EDITOR / PIE VERIFICATION RESULTS
+-------------------------------------------------------------------------------
+Test 1: Continuous Exit Movement from Bridge Landing (_tools/profile_continuous_walk.py)
+  Evaluated 16 exit vectors with continuous character floor tracking (min_z monitoring):
+  +--------------------------------+---------------+---------------+------------+--------+
+  | Exit Direction Vector          | Start Pos     | Final Pos     | Min Z (cm) | Result |
+  +--------------------------------+---------------+---------------+------------+--------+
+  | Right (South, -Y)              | X=-2450.0     | (-2485.7, 7139.0) | 386.6  | PASS   |
+  | Forward-Right (-X, -Y)         | X=-2450.0     | (-2565.5, 8106.7) | 386.6  | PASS   |
+  | Backward-Right (+X, -Y)        | X=-2450.0     | (-2369.5, 8291.4) | 429.9  | PASS   |
+  | Slight Right (-X=1.0, -Y=0.4)  | X=-2450.0     | (-2565.6, 8106.7) | 386.6  | PASS   |
+  | Left (North, +Y)               | X=-2450.0     | (-2461.7, 9504.9) | 391.0  | PASS   |
+  | Forward-Left (-X, +Y)          | X=-2450.0     | (-2565.6, 8568.6) | 399.3  | PASS   |
+  | Backward-Left (+X, +Y)         | X=-2450.0     | (-2371.1, 8379.1) | 429.7  | PASS   |
+  | Slight Left (-X=1.0, +Y=0.4)   | X=-2450.0     | (-2565.6, 8568.6) | 399.3  | PASS   |
+  | Right (South, -Y)              | X=-2480.0     | (-2480.0, 7018.0) | 386.4  | PASS   |
+  | Forward-Right (-X, -Y)         | X=-2480.0     | (-2565.6, 8106.7) | 386.7  | PASS   |
+  | Backward-Right (+X, -Y)        | X=-2480.0     | (-2369.5, 8291.4) | 429.7  | PASS   |
+  | Slight Right (-X=1.0, -Y=0.4)  | X=-2480.0     | (-2565.6, 8106.6) | 386.4  | PASS   |
+  | Left (North, +Y)               | X=-2480.0     | (-2480.0, 9645.1) | 386.6  | PASS   |
+  | Forward-Left (-X, +Y)          | X=-2480.0     | (-2565.6, 8568.5) | 399.4  | PASS   |
+  | Backward-Left (+X, +Y)         | X=-2480.0     | (-2371.1, 8379.1) | 429.7  | PASS   |
+  | Slight Left (-X=1.0, +Y=0.4)   | X=-2480.0     | (-2565.6, 8568.6) | 399.3  | PASS   |
+  +--------------------------------+---------------+---------------+------------+--------+
+  Result: 16/16 PASS (100%). Zero water falls, zero teleports, continuous solid floor support.
+
+Test 2: Connected Two-Way Crossing & Exit Turns (_tools/reproduce_connected_bridge_run.py)
+  - Full Westbound crossing: Doorway (-1534, 8335, 378) -> Bridge deck -> West landing foot (-2466, 8335, 386).
+    Result: PASS, min_z = 378.2 cm.
+  - All 7 exit directions from West stair foot (Forward, Right, Left, Diagonals):
+    Result: 7/7 PASS, min_z = 366.0 cm, zero falls, zero rescues.
+  - Full Eastbound crossing: West landing (-2500, 8335, 386) -> Bridge deck -> East exit foot (-1649, 8335, 386).
+    Result: PASS, min_z = 366.0 cm.
+  - All 7 exit directions from East stair foot (Forward into Doorway, Right, Left, Diagonals):
+    Result: 7/7 PASS, min_z = 366.0 cm, zero falls, zero rescues.
+
+Test 3: Comprehensive All-Routes Traversal (_tools/verify_all_routes_complete.py)
+  +--------------------------------------------------------+------------+--------+
+  | Route Traversal                                        | Min Z (cm) | Status |
+  +--------------------------------------------------------+------------+--------+
+  | R01: Spawn Dock Platform walk                          | 358.5      | PASS   |
+  | R09: West Landing -> South along Corridor to C-03      | 386.6      | PASS   |
+  | R09: Fixture C-03 -> North along Corridor to Landing   | 386.5      | PASS   |
+  | R10: Restored Stone Crossing Westbound                 | 378.2      | PASS   |
+  | R10: Restored Stone Crossing Eastbound                 | 378.2      | PASS   |
+  | R11: Bridge Landing -> North Corridor to Fixture C-05  | 386.1      | PASS   |
+  | R11: Fixture C-05 -> South Corridor Return to Landing  | 386.1      | PASS   |
+  | R12: East Bank Approach North of Doorway               | 384.7      | PASS   |
+  +--------------------------------------------------------+------------+--------+
+  Result: 8/8 PASS (100%).
+
+-------------------------------------------------------------------------------
+5. PACKAGED SHIPPING CANDIDATE & BUILD PROVENANCE
+-------------------------------------------------------------------------------
+Build Identity:
+  Candidate ID: Windows_UserFallsFixed_20261019_210942
+  Build Command: RunUAT.bat BuildCookRun -project=Substrate.uproject -clientconfig=Shipping -build -cook -stage -pak -package -archive
+  Duration: 3.05 minutes (Cook: 783 packages, Exit Code: 0, Warnings: 0, Errors: 0)
+  Source Revision (Git HEAD): 3dafe29284c6f0dcce40ebbfb0f527331403eb11
+  Archive Directory:
+    D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_210942
+  Executable:
+    D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_210942\Substrate.exe
+    (SHA-256: c885938ee747343777153db3b196b275c6ef461addd02aba43c5d98434af6da5, Size: 171,520 bytes)
+  Shipping Binary:
+    D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_210942\Substrate\Binaries\Win64\Substrate-Win64-Shipping.exe
+    (SHA-256: 30b9331632c559867a19c05b62c1177da4a2f15f9d177e72bbab2fd201ef3b4e, Size: 165,788,160 bytes)
+  Pak Container:
+    D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_210942\Substrate\Content\Paks\Substrate-Windows.pak
+    (SHA-256: c98015b48a90deed1c64d6cf5ab02b1b6fa7c273b958b4d01c9631a1f16b6dc5, Size: 11,449,973 bytes)
+  UCAS Container:
+    D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_210942\Substrate\Content\Paks\Substrate-Windows.ucas
+    (SHA-256: 13071df03d24cefeb889f45e545ce2678c9563742771867241524a8861093224, Size: 577,530,320 bytes)
+
+Packaged Smoke Test Result:
+  Command: python _tools/smoke_test_package.py --exe Packaged/Windows_UserFallsFixed_20261019_210942/Substrate.exe
+  Process Alive: True (Substrate.exe & Substrate-Win64-Shipping.exe)
+  Modal Error Dialogs: NONE
+  Rendered Main Viewport: UnrealWindow (1296x759) rendered cleanly
+  Smoke Test Status: PASS
+
+Packaged Acceptance Verification Status:
+  Status: PENDING USER MANUAL ACCEPTANCE
+  Reason: Automated standalone smoke test confirms clean packaging and rendering. Per project rules,
+  final PASS on the user-reported scenarios requires human physical playtest confirmation using the checklist below.
+
+-------------------------------------------------------------------------------
+6. MANUAL ACCEPTANCE PLAYTEST CHECKLIST FOR USER
+-------------------------------------------------------------------------------
+Executable to launch:
+  D:\Projects\Substrate\Packaged\Windows_UserFallsFixed_20261019_210942\Substrate.exe
+
+Scenario A Acceptance Verification (Spawn Dock & Starting Movement):
+  [ ] 1. Launch Substrate.exe. Select Start / New Shift.
+  [ ] 2. Observe the spawn dock platform. Confirm the screen does NOT flash red on load.
+  [ ] 3. Pause for 2-3 seconds at the spawn point. Confirm character is solidly grounded.
+  [ ] 4. Walk forward (+W). Confirm smooth movement with NO red overlay and NO fall underground.
+  [ ] 5. Walk backward (S), left (A), and right (D) across the dock platform.
+  [ ] 6. Confirm solid floor collision across all foundation slabs surrounding the terminal.
+
+Scenario B Acceptance Verification (Bridge Crossing & Landing Right Turn):
+  [ ] 1. Walk from the spawn dock across the canal approach to the stone crossing bridge (Route 10).
+  [ ] 2. Cross the iron double bridge (StaticMeshActor_3643) Westbound down the exit stairs.
+  [ ] 3. At the foot of the exit stairs, immediately turn right (South, towards Fixture C-03 / lower Y).
+  [ ] 4. Steer around or walk past the concrete debris piles on the landing.
+  [ ] 5. Confirm you walk onto the concrete floor slabs (StaticMeshActor_2715) solidly WITHOUT falling into the water.
+  [ ] 6. Continue walking South along the West Bank corridor towards Fixture C-03.
+  [ ] 7. Turn around and walk North back across the landing to the bridge stairs.
+  [ ] 8. Cross the bridge in the reverse direction (Eastbound) back into the doorway threshold.
+===============================================================================

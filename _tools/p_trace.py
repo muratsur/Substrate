@@ -1,6 +1,7 @@
 import sys, json
 sys.path.insert(0, '_tools')
 import mcpx as M
+M.init()
 
 SCRIPT = r'''
 import unreal

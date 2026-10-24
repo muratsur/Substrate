@@ -1,0 +1,108 @@
+SUBSTRATE - FIX THE PACKAGED STARTUP FAILURE FIRST
+Date: 2026-10-17
+Workspace: D:\Projects\Substrate
+
+CONFIRMED FAILURE
+The user's packaged-game screenshot displays:
+Plugin 'HoudiniEngine' failed to load because module 'HoudiniEngineRuntime'
+could not be found. Please ensure this plugin is properly installed, otherwise
+consider disabling the plugin for this project.
+The game is blocked before normal gameplay. Startup acceptance is FAIL.
+
+LOCAL EVIDENCE
+Substrate.uproject has no explicit HoudiniEngine plugin entry.
+The installed engine plugin descriptor at:
+C:\Program Files\Epic Games\UE_5.8\Engine\Plugins\Runtime\HoudiniEngine\HoudiniEngine.uplugin
+sets EnabledByDefault=true and declares HoudiniEngineRuntime as a Runtime module.
+The acceptance package build log includes HoudiniEngine asset/config warnings.
+This supports inherited plugin enablement as the reason it is requested; the
+precise reason its runtime module is unavailable still requires investigation.
+Do not assume missing editor DLLs are the solution to a Shipping module failure.
+
+SCOPE
+Fix this startup blocker, package a fresh candidate, and prove rendered gameplay
+starts. Preserve user assets, prior builds and saves. Do not reinstall Unreal,
+delete shared engine plugins, or make unrelated game changes.
+
+1. PRESERVE AND IDENTIFY
+- Back up Substrate.uproject and any assets you need to change.
+- Record the exact failing executable, source state and screenshot/error text.
+- Close the failed candidate normally before launching another test instance.
+- Inspect current plugin enablement, dependencies and staged plugin metadata.
+  Read build receipts/logs to establish what was built versus merely cooked.
+
+2. CHECK WHETHER THE GAME ACTUALLY NEEDS HOUDINI
+- Use Unreal Asset Registry/references and scene inspection to find Houdini
+  actors/components, assets referencing /Script/HoudiniEngineRuntime, Houdini
+  plugin content, and any other enabled plugin requiring HoudiniEngine.
+- Text-searching .uasset files alone does not establish absence of dependencies.
+- Determine whether Houdini is only an authoring tool with baked ordinary meshes
+  or whether shipping assets still require its classes/components.
+- Record findings before changing enablement. Do not silently discard procedural
+  actors or replace them with empty/missing geometry.
+
+3. APPLY THE SMALLEST APPROPRIATE FIX
+PATH A - No required Houdini dependency:
+Add this entry to the existing Plugins array in Substrate.uproject, preserving
+all other entries and valid JSON:
+  { "Name": "HoudiniEngine", "Enabled": false }
+Disable it for this project, not globally in the engine installation.
+Restart the editor if needed, load L_SectorC and check for missing classes/assets.
+
+PATH B - Houdini is needed only for authoring:
+Preserve the procedural originals, bake required results to ordinary project
+assets, and replace shipping-world dependencies with those baked results.
+Consider editor-only plugin enablement only after checking the build system's
+supported target filtering and confirming cooked assets no longer depend on it.
+Verify geometry/materials/collision before packaging.
+
+PATH C - Runtime dependency is genuinely required:
+Inspect plugin support for the installed UE version and Win64 Shipping target.
+Use the supported build workflow to build/link/stage its runtime module and
+dependencies. A successful cook with an existing generic binary is not proof
+that the plugin runtime was compiled into the game. Inspect UAT flags/receipts.
+Do not copy UnrealEditor DLLs into the Shipping package as a guessed fix.
+If the required runtime cannot be supported, report the exact limitation and
+propose a baked alternative; do not claim the broken package is repaired.
+
+4. PACKAGE A NEW CANDIDATE
+- Save intended source/assets and compile relevant Blueprints.
+- Use a fresh staging/archive output so stale Houdini metadata cannot be reused.
+  Prefer unique build directories over broad deletion of project folders.
+- Preserve the failing package as evidence.
+- Record build command, warnings/errors, exit code, source state and output hashes.
+- Confirm the chosen plugin policy is reflected in staged metadata and binaries.
+
+5. PROVE STARTUP, NOT PROCESS LIVENESS
+- Launch the exact new Shipping executable outside the editor.
+- Inspect all windows belonging to the game for startup error dialogs, including
+  a generic 'Message' window. A modal plugin error can keep a process alive.
+- Require the actual 3D scene to render and normal movement/look input to work.
+- Capture the scene and test entering the stair route and raising the terminal.
+- If visual/input automation is unavailable, mark rendered startup NOT VERIFIED
+  and give the user the new executable path for a direct test. Build success
+  alone is not a repaired-startup result.
+- Do not infer absence of errors from missing Shipping logs.
+- Resume LOCAL_AI_FINAL_PACKAGED_PLAYTEST_PLAN.txt only after startup is proven.
+
+6. CORRECT THE HARNESS AND REPORT
+- Update the packaged smoke test to distinguish process alive, error dialog
+  present, scene rendered and controls responsive as separate observations.
+- Use the known failing build as a negative control where practical: the harness
+  must not mark it healthy simply because its error dialog remains open.
+- Revise prior startup/performance claims to reflect this discovered failure.
+- Write LOCAL_AI_HOUDINI_STARTUP_FIX_RESULTS.txt with dependency findings, exact
+  changes, candidate path, evidence and PASS/FAIL/NOT VERIFIED status.
+- Leave FPS/frame-time and normal menu Quit checks unverified until tested.
+
+PROMPT FOR THE LOCAL AI
+Execute D:\Projects\Substrate\LOCAL_AI_HOUDINI_STARTUP_FIX.txt. The packaged game
+is blocked by a missing HoudiniEngineRuntime module. Inspect real dependencies,
+then disable the unneeded plugin per project or correctly build its required
+runtime. Package into a fresh output and prove the 3D scene and normal controls
+work. Do not count a live process or successful cook as startup success. Preserve
+existing work and report exact evidence in LOCAL_AI_HOUDINI_STARTUP_FIX_RESULTS.txt.
+
+STATUS
+This file is a targeted repair handoff. No plugin configuration or game asset
+was changed while creating it; the startup repair has not yet been executed.

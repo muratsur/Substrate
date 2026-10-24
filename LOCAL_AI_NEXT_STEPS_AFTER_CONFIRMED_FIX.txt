@@ -1,0 +1,154 @@
+===============================================================================
+SUBSTRATE - NEXT STEPS FOR LOCAL AI
+Date: 2026-10-22
+Project: D:\Projects\Substrate\Substrate.uproject
+Priority: Preserve the confirmed fix, deliver a verified package, then polish.
+===============================================================================
+
+TASK
+Act on this plan in order. Inspect the project before changing it. Complete the
+release verification work before starting upgrades. Do not mark a phase PASS
+unless its acceptance checks actually ran. Report blocked or untested work plainly.
+
+CONFIRMED BASELINE - DO NOT REGRESS
+The user has now personally confirmed that the reported fall is fixed in Editor.
+The actual location was X2039, Y4507, beside the stair landing in L_SectorC.
+It was NOT the distant restored bridge beside the yellow pipes.
+
+Cause: visible walkway slabs had NoCollision. The player fell through them and
+stood on canal-bottom actor137 at capsule-center Z198.15.
+Repair: StaticMeshActor_267, 268, 269, 295, 296, 297 now use BlockAll with
+QueryAndPhysics. At the reported point the capsule now stands near Z384.7.
+Do not disable these slabs or replace the repair with an underwater rescue floor.
+Do not remove decorative meshes or globally change collision profiles.
+
+Changed map: Content/Substrate/Maps/L_SectorC.umap
+Current configured startup AND game map: /Game/Substrate/Maps/L_SectorC.L_SectorC
+Do not assume a Substrate_Main map exists; verify actual files/configuration.
+
+Evidence to read:
+- CODEX_ACTUAL_FALL_REPAIR.txt
+- Saved/CodexFallInvestigation/actual_slab_repair_manifest.json
+- Saved/CodexFallInvestigation/actual_slab_before.json
+- Saved/CodexFallInvestigation/actual_slab_verified.json
+- _tools/codex_walk_route.py
+- Saved/CodexFallInvestigation/actual_slab_verified_config.json
+
+The final eight-waypoint movement test PASSED after saving and reloading the map.
+It uses real PIE character physics and an existing AutoMove hook, with one initial
+placement. This is NOT proof of packaged keyboard gameplay or the whole game.
+The user's subsequent confirmation verifies this specific Editor repair.
+
+Earlier separate change: actors3803/3804/3805 extend the west-bank floor near
+X-2400, Y9633..10495. Preserve it unless a demonstrated regression requires change.
+Read CODEX_WEST_BANK_REPAIR.txt for its narrower verification scope.
+
+IMPORTANT SAVE LESSON
+The tool save_assets with a specific map path returned false during this repair.
+The successful path was save_assets with an empty asset_paths list, which uses
+EditorLoadingAndSavingUtils.save_dirty_packages(True, True). Inspect dirty assets
+first so unrelated work is not silently included. This tool's implementation
+returns true without forwarding the underlying save result, so a true response
+alone is insufficient: verify disk changes, reload the map, and check properties
+and runtime behavior. Avoid restoring an old backup over the confirmed fix.
+
+PHASE 1 - RECORD AND PROTECT THE CURRENT WORKING STATE
+1. Inspect project instructions, git status, active editor/game processes and logs.
+   Preserve all existing user/local-AI changes. Do not reset or clean the repository.
+2. Back up the current repaired map, project/config files and any assets you will
+   change into a NEW dated backup directory. Record source paths and SHA-256 hashes.
+   Pre-repair backups do not contain the confirmed fix.
+3. Read the six slab collision settings from the current editor map. If Play is
+   running, avoid interrupting the user's playtest without warning.
+4. Confirm the project engine association, available UE installation, startup map,
+   game map, plugins and packaging settings. Existing project uses UE5.8; verify.
+   Do not re-enable HoudiniEngine merely because historical scripts mention it.
+Acceptance: current baseline manifest and recoverable backup exist; six repaired
+slabs remain solid. Record discrepancies before proceeding.
+
+PHASE 2 - BUILD A FRESH STANDALONE CANDIDATE
+1. Reuse the project's established BuildCookRun workflow after reading its script.
+   _tools/codex_package_west_bank.py is a reference, not a current release identity.
+2. Create a NEW output folder, for example:
+   Packaged/Windows_ConfirmedFloorFix_<timestamp>/
+   Do not overwrite previous builds or reuse their success reports.
+3. Build/cook/stage/package/archive Win64 Shipping using the saved source map.
+   If temporarily disabling the editor MCP auto-start to prevent port conflicts,
+   restore the exact original config in a finally block, including on failure.
+4. Save the complete UAT log, actual command, exit code, timestamps, source-map
+   hash and resulting executable/container hashes. Inspect errors and warnings.
+5. Locate the actual launcher; do not guess whether it is at the archive root or
+   under a Windows subfolder. Check that its folder contains the expected game data.
+6. Verify packaging used the saved repair and the configured entry map. Do not copy
+   raw .umap files into an old package as a substitute for cooking.
+Acceptance: UAT exit 0, real output files, traceable source/build manifest. Build
+success means packaged successfully; it does not mean gameplay has passed.
+
+PHASE 3 - VERIFY THE ACTUAL PACKAGED GAME
+1. Launch the NEW candidate by its absolute path. Record the running process's
+   executable path to rule out an old shortcut or another package.
+2. Start normally and play through the route with ordinary player controls.
+   Record video or ordered screenshots and route notes, plus relevant logs.
+3. Specifically walk over the repaired slabs around X2039/Y4507, along the visible
+   walkway toward the stair landing, and back. Check both rows and their joins.
+4. Complete a connected route from spawn through the stairs, restored crossing,
+   left/right bank turns and the intended exit. Test reverse travel where allowed.
+   Identify each crossing by coordinates/landmarks, not just the word bridge.
+5. Test normal walking, permitted sprint/jump behavior, and approach angles at
+   repaired seams. Do not use noclip, repeated teleportation, invulnerability,
+   or automatic rescue as proof that a route is traversable.
+6. Check that intentional water falls recover as designed without stranding the
+   player or looping respawns. Recovery does not excuse broken walkable floors.
+7. Confirm input, pause/restart and the actual end-of-run flow work in this build.
+Acceptance: intended connected route completed without unintended falls, invisible
+barriers or stranded states; repaired spot passed in the exact packaged candidate.
+If direct gameplay cannot be performed, mark PACKAGED GAMEPLAY UNVERIFIED and give
+Murat the exact executable plus a short checklist. Never invent a PASS.
+
+PHASE 4 - TARGETED REGRESSION CHECKS
+- Recheck the earlier spawn fall/red-screen report if it still reproduces.
+- Preserve the cleared stair entrance and required perimeter rails.
+- Check the restored bridge and both landings, not only the bridge center.
+- Check the previously repaired west-bank extension without confusing it with
+  the confirmed stair-landing collision repair.
+- Inspect existing tests before using them. A zero exit code or empty hit list is
+  insufficient unless the test asserts endpoint arrival and valid floor support.
+- The earlier straight return test snagged near X-2400/Y8453; the wider landing via
+  X-2470 passed. Verify whether that is an intended obstacle or a real route issue.
+- A pillar blocks a test near X2352/Y4384. Do not remove structural collision just
+  to make an arbitrary straight-line waypoint test pass.
+For each genuine regression: reproduce, record exact coordinates and actor/component
+identity, back up, make the smallest correction, then rerun the failing test and
+nearby route checks. Stop accumulating speculative fixes if evidence is missing.
+Acceptance: each listed check has evidence-backed PASS/FAIL/UNTESTED status.
+
+PHASE 5 - SMALL POLISH UPGRADES AFTER TRAVERSAL PASSES
+First create a prioritized backlog from observed playtest findings. Separate bugs
+from optional design ideas. Prefer low-risk improvements with measurable benefit:
+- Improve local visibility of walkway edges and exits while preserving the dark
+  atmosphere; compare before/after at matching camera positions.
+- Make route cues clear where a path bends or narrows; avoid misleading walkable
+  visuals over unsafe areas.
+- Inspect existing audio/settings before adjusting abrupt or excessive sounds.
+- Profile representative gameplay before optimizing; record hardware, resolution,
+  graphics preset, frame time and stutters. Screenshot FPS alone is not profiling.
+Keep each improvement separate and rerun affected traversal checks. Present major
+layout, story, progression, engine/plugin or art-direction changes as proposals;
+this plan does not authorize a broad redesign or publishing a release.
+
+FINAL HANDOFF
+Create LOCAL_AI_VERIFIED_DELIVERY.txt containing:
+1. Exact candidate executable path and build identity.
+2. Changed files/actors and why each changed.
+3. Backup paths and selective rollback instructions.
+4. Test matrix separating Editor, packaged launch, and packaged gameplay results.
+5. Evidence paths and all remaining failures/untested areas.
+6. A short manual checklist for Murat, starting with the original fall location.
+7. Optional upgrade backlog ranked by player impact and implementation risk.
+
+DONE MEANS
+The user-confirmed collision repair is preserved on disk, a fresh package includes
+it, and evidence supports every claimed test result. If packaged gameplay awaits
+Murat, say so explicitly. Do not claim the entire game is fixed based on one route,
+a successful cook, or a report generated by another AI.
+===============================================================================

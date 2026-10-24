@@ -1,0 +1,210 @@
+===============================================================================
+SUBSTRATE - PLAYABLE ROUTE INVENTORY
+Date: 2026-10-18
+Map: /Game/Substrate/Maps/L_SectorC.umap
+Configured Default Map: /Game/Substrate/Maps/L_SectorC.L_SectorC
+Package Baseline: Windows_StoneCrossingFixed_20261018_114140
+===============================================================================
+
+ROUTE MATRIX OVERVIEW:
+This inventory defines every intended physical and logical route connection
+in SUBSTRATE (Sector C and connected facility modules).
+Coordinates are exact world coordinates extracted directly from the map assets.
+
+-------------------------------------------------------------------------------
+ROUTE ID: R01
+Name: Spawn Dock -> Terminal & Airlock Entry
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: PlayerStart_SectorC (X=0.0, Y=1400.0, Z=360.0)
+End Landmark: Terminal_01 (BP_Terminal_C_0 at X=-200.0, Y=1500.0, Z=430.0)
+              and Airlock_DockToTransit (BP_Airlock_C_0 at X=300.0, Y=1400.0, Z=400.0)
+Walkway Surfaces: Dock concrete floor slabs (SM_detail_Cube_016_428..432, Z=260..280)
+Direction: Two-way (Free movement within dock platform)
+Access Condition: Unlocked at round start.
+Intended Gameplay: Player spawns, inspects/raises terminal, checks shift checklist.
+Screenshot Reference: route_R01_spawn_dock.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R02
+Name: Dock <-> Transit Airlock Gateway (Sector A/C <-> Sector B)
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Airlock_DockToTransit (BP_Airlock_C_0 at X=300.0, Y=1400.0, Z=400.0)
+End Landmark: Airlock_TransitToDock (BP_Airlock_C_1 at X=8560.0, Y=4520.0, Z=420.0)
+Direction: Two-way (Dock -> Transit, Transit -> Dock)
+Access Condition: Normal progression airlock trigger (or free-roam gate policy).
+Intended Gameplay: Walking into gate volume transits pawn safely between Dock and Transit corridor without bouncing.
+Screenshot Reference: route_R02_airlock_gate.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R03
+Name: Sector B Transit Corridor Exploration (Snow Station modules)
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Airlock_TransitToDock (X=8560.0, Y=4520.0, Z=420.0)
+End Landmark: South end of Transit Corridor at Fix_B01 (X=8560.0, Y=2500.0, Z=460.0)
+Intermediates: Fix_B03 (Y=4100.0, Z=460.0), Fix_B02 (Y=3250.0, Z=460.0), GrowthNode_Transit (Y=3600.0)
+Walkway Surfaces: TransitPath_1..6 (SM_rusty_modulesg_Cube at X=8460..8660, Y=2414..4484, Z=296) and SectorB_FloorSafety (Z=280)
+Direction: Two-way (North-South along Y corridor)
+Access Condition: Open corridor once transited to Sector B.
+Intended Gameplay: Inspect and log Sector B fixtures B-01, B-02, B-03; observe anomaly socket Doppelganger.
+Screenshot Reference: route_R03_transit_corridor.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R04
+Name: South Canal Dock Corridor -> East Approach Stairs (Sm_stair_01)
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: South Dock Walkway (X=1000..1550, Y=1400..1700, Z=270.0)
+End Landmark: Top of Sm_stair_01 (StaticMeshActor_228 at X=1554.5, Y=1700.0, Z=270..470)
+Direction: Two-way (Northbound ascent / Southbound descent)
+Walkway Surfaces: SM_sewer_modules_Cube_58 (Z=270), Sm_stair_01 (Z: 270->470), SM_sewer_modules_Cube_79 (Z=270..470)
+Access Condition: Normal open traversal.
+Intended Gameplay: Progression from southern approach toward upper eastern sewer gallery.
+Screenshot Reference: route_R04_south_stair01.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R05
+Name: South-East Upper Corridor -> Fixture C-01 & Canal Stairs (Sm_stair_2)
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Upper South-East Corridor (X=1550..1880, Y=1700..3360, Z=470.0)
+End Landmark: Fixture_C1 (C-01 INLET VALVE at X=1469.0, Y=4342.0, Z=430.0)
+Intermediates: Sm_stair_2 (StaticMeshActor_245 at X=1930.0, Y=4020.0, Z=270..470), CanalStairs_South_Lower (X=330.0, Y=4100.0, Z=70..270)
+Walkway Surfaces: SM_sewer_modules_Cube_78, Bridge_Ext_Floor_South/North (StaticMeshActor_3798/3799, Z=265)
+Direction: Two-way
+Access Condition: Normal open traversal.
+Intended Gameplay: Inspect and log Fixture C-01.
+Screenshot Reference: route_R05_fixture_c01.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R06
+Name: Repaired East Metal Stairs & Platform (Both Directions)
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Bridge Walkway CP1 (X=1420.0, Y=4980.0, Z=359.0)
+End Landmark: Lower Walkway Base CP4 (X=1750.0, Y=5010.0, Z=330.0)
+Intermediates: Top Landing CP2 (X=1560.0, Y=5010.0, Z=360.0), Middle Steps CP3 (X=1640.0, Y=5010.0, Z=342.0)
+Platform Mesh: StaticMeshActor_3600 (SM_rusty_modulesg_Cube_077, SM_stairs_platform_02 at X=1748.0, Y=5106.0, Z=282.0)
+Protective Railings: Bridge_Safety_Barrier_East, Bridge_Ext_Fence_E1..E4, Bridge_Ext_Fence_W1..W3
+Direction: Two-way (Ascent & Descent; center & angled entries)
+Access Condition: Repaired baseline.
+Intended Gameplay: Transition between upper bridge walkway and east sewer filtration floor without snagging or falling.
+Screenshot Reference: route_R06_east_metal_stairs.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R07
+Name: East Lower Corridor -> Fixture C-02 (Filtration Chamber)
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Base of East Stairs (X=1750.0, Y=5010.0, Z=330.0)
+End Landmark: Fixture_C2 (C-02 FILTRATION SEAL at X=3060.0, Y=6170.0, Z=430.0)
+Walkway Surfaces: East corridor floor plates, Doorway threshold CanalDoorway_SafetyFloor (StaticMeshActor_229 at X=3030.0, Y=5165.0, Z=265.0)
+Direction: Two-way
+Access Condition: Normal open traversal.
+Intended Gameplay: Inspect and log Fixture C-02; observe shadow anomaly socket C2.
+Screenshot Reference: route_R07_fixture_c02.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R08
+Name: Canal Transverse Crossing -> West Canal Bank & Fixture C-03
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Central Canal Crossroads (X=1000..1500, Y=5000..6000, Z=330.0)
+End Landmark: Fixture_C3 (C-03 PRESSURE GAUGE at X=-2480.0, Y=7212.0, Z=420.0)
+Walkway Surfaces: SM_sewer_modules_Cube_169 (X: [-1620..-620], Y: [6783..7783]), West corridor slabs (SM_detail_Cube_016_1870..1871, Z=288.0)
+Direction: Two-way
+Access Condition: Normal open traversal.
+Intended Gameplay: Cross from east quadrant over canal to west bank; inspect and log Fixture C-03.
+Screenshot Reference: route_R08_fixture_c03.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R09
+Name: West Canal Bank Northbound Corridor -> Doorway Threshold & Fixture C-04
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Fixture_C3 (X=-2480.0, Y=7212.0, Z=420.0)
+End Landmark: Fixture_C4 (C-04 OVERFLOW LAMP at X=-1516.0, Y=8349.0, Z=420.0)
+              and Crossing Doorway Threshold (X=-1534.0, Y=8335.0, Z=378.0)
+Walkway Surfaces: West corridor floor slabs (SM_detail_Cube_016_1853..1856, X: -1803..-1604, Y: 7608..8183, Z=288.0)
+Direction: Two-way
+Access Condition: Normal open traversal.
+Intended Gameplay: Approach northern canal crossing doorway; inspect and log Fixture C-04.
+Screenshot Reference: route_R09_fixture_c04.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R10
+Name: Restored Stone Crossing & Double Stair-Bridge (Doorway -> Slabs -> Bridge -> Far Ledge)
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Doorway Threshold inside corridor (X=-1534.0, Y=8335.0, Z=378.0)
+End Landmark: Far Ledge Corridor Entrance (X=-2565.0, Y=8335.0, Z=346.0)
+Components & Geometry:
+  1) Near Slabs: StaticMeshActor_2700 & 2713 (X: -1804..-1604, Y: 8188..8764, Z=72..288.5)
+  2) Iron Double Bridge: StaticMeshActor_3643 (SM_double_bridge at X=-1691.6, Y=8420.4, Z=288.4, deck Z=367.0, clear width 130cm, centerline Y=8335.0)
+  3) Far Slabs: StaticMeshActor_3111 & 3115 (X: -2534..-2334, Y: 8188..8764, Z=62..278.5)
+Direction: Two-way (Westbound crossing and Eastbound return; center & angled lane approaches)
+Access Condition: User-confirmed fixed baseline (Preserve SM_3643 and SM_2700/2713/3111/3115).
+Intended Gameplay: Critical crossing spanning deep canal beneath large overhead pipes; provides only access to north-west sector.
+Screenshot Reference: route_R10_stone_crossing.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R11
+Name: Far West Bank Corridor -> Fixture C-05 (Outfall Grate)
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Far Ledge crossing exit (X=-2565.0, Y=8335.0, Z=346.0)
+End Landmark: Fixture_C5 (C-05 OUTFALL GRATE at X=-2543.0, Y=10200.0, Z=430.0)
+Walkway Surfaces: Far west outfall corridor slabs (SM_detail_Cube_016_2185..2192, SM_sewer_modules_Cube_180, Z=270..288)
+Direction: Two-way
+Access Condition: Accessible via Restored Stone Bridge.
+Intended Gameplay: Final Sector C fixture inspection and log.
+Screenshot Reference: route_R11_fixture_c05.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R12
+Name: North-West Corridors & Staged Gallery Stairs (SM_stair_02 & SM_stairs_03)
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: North-west corridor junction (X=-1460.0, Y=8620.0, Z=280.0)
+End Landmark: Upper north sewer gallery doorway SM_entrance (StaticMeshActor_2658 at X=-1354.5, Y=10653.4, Z=470.0)
+Stair Actors:
+  - SM_stair_02 (StaticMeshActor_3305 at X: -1460..-460, Y: 8620..9280, Z: 280..480)
+  - SM_stairs_03 (StaticMeshActor_2592 at X: 810..1660, Y: 10120..10730, Z: 185..435)
+Direction: Two-way
+Access Condition: Open architectural route.
+Intended Gameplay: Exploration of northern elevated sewer galleries.
+Screenshot Reference: route_R12_north_gallery_stairs.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R13
+Name: Far West Progression Gate (WestGateBlock -> Megastructure Extension)
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Far West Gallery approach (X=-24500.0, Y=700.0, Z=220.0)
+End Landmark: West Gate terminal & blockade (WestExt_EndBlock_00..03 at X=-25050..-25100, Y=700.0, Z=220..400)
+Signal Lights: PointLight_22 (Red guide light), PointLight_23 (Green unlock light)
+Direction: Forward progression
+Access Condition: Gated by shift checklist completion. Automatically unblocks via OpenWestGate() when TerminalRemaining == 0.
+Intended Gameplay: Opened when all required shift fixtures are signed off.
+Screenshot Reference: route_R13_west_gate.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R14
+Name: Sector D Research Catwalk & Relief Valve Connection
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Sector D Arrival Landing (X=-660.0, Y=-8500.0, Z=450.0)
+End Landmark: Fix_D06 (C-06 RELIEF VALVE at X=-660.0, Y=-6230.0, Z=455.0)
+Walkway Surfaces: SectorD_Path_1..12 (X=-540.0, Y: -10786..-6232, Z=296.0) inside SectorD_Tube_1..6
+Direction: One-way forward progression to relief valve
+Access Condition: Gated by Round Manager completion (Round >= 8 trigger via EnterSectorD()).
+Intended Gameplay: Mid-game escalation; player enters research facility and interacts with C-06 relief valve.
+Screenshot Reference: route_R14_sector_d_catwalk.png
+
+-------------------------------------------------------------------------------
+ROUTE ID: R15
+Name: Dock Shift Return & Round Audit Trigger
+Map / Sublevel: /Game/Substrate/Maps/L_SectorC.umap (PersistentLevel)
+Start Landmark: Dock Platform (X=0.0, Y=1400.0, Z=360.0)
+End Landmark: RouteEnd_ShiftTrigger (BP_RoundManager_C_1 at X=0.0, Y=1260.0, Z=420.0)
+Direction: One-way arrival to conclude round
+Access Condition: Stepping into dock trigger evaluates TryCloseShift().
+Intended Gameplay: Closes active shift; if all required fixtures are logged correctly, advances round.
+Screenshot Reference: route_R15_shift_close_trigger.png
+
+-------------------------------------------------------------------------------
+GENUINE DEAD ENDS AND HAZARDS (SEPARATE FROM ROUTES):
+1. Deep Open Canal: Water surface at Z=190.0, canal bed at Z=50..100.
+   Protected by handrails on bridges and stairs. Overlapping triggers BP_CanalRescue_C_0/1 which safely respawns the pawn at dock (0, 1400, 360).
+2. North Bulkhead: CanalPlug_North (BlockingVolume_3 at Y=11650) prevents falling off northern world boundary.
+3. Southern Outfall Grate: Solid wall boundary behind Fixture C-05 at Y=10450.
+4. Overhead Decorative Pipes: StaticMeshActor_2594 and 2595 (Z: 614..875). Sits >240cm above bridge deck; decorative only.
+===============================================================================

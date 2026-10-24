@@ -1,0 +1,14 @@
+ACTUAL USER FALL REPAIR - 2026-10-22
+Located live PIE player at X2038.99 Y4506.85 Z198.15, standing on canal bottom actor137.
+This is the stair-landing area, not the west-bank section previously repaired.
+Slabs 267,268,269,295,296,297 had NoCollision. Restored BlockAll / QueryAndPhysics.
+Preserved geometry and decorative rubble settings. Backups and original settings:
+Saved/CodexFallInvestigation/actual_slab_repair_manifest.json
+Before test: actual_slab_before.json FALL at exact user XY, ending at Z198.15.
+After test: actual_slab_verified.json PASS, all eight waypoints, after reloading map.
+Map: Content/Substrate/Maps/L_SectorC.umap.
+Initial per-asset save failed. Saved with dirty-level saving and confirmed new disk
+modification time and successful movement test after reloading L_SectorC.
+Existing pillar blocks one off-route northward test near X2352 Y4384; no change there.
+Editor Play is left running at X2039 Y4507 on the repaired floor for user testing.
+Old packaged executable does NOT contain this repair. No new package made this turn.

@@ -1,0 +1,65 @@
+SUBSTRATE - WATER EXPLORATION CHANGE
+2026-10-23
+
+Requested behavior
+Enter and explore canal water without immediately returning to the starting dock.
+Implemented as walking/wading on existing canal geometry. This does not add swimming,
+diving, buoyancy, underwater controls, or a new breathing system.
+
+Saved map changes
+Content/Substrate/Maps/L_SectorC.umap
+- BP_CanalRescue_C_0, _1 and _2: CollisionComp.bGenerateOverlapEvents = false.
+  Their overlap-triggered spawn teleports are inactive. The shared rescue Blueprint
+  was not edited, so the remaining void trigger keeps its existing behavior.
+- BP_CanalRescue_C_3: still enabled, below the level, Z bounds -800 to -400.
+- Added StaticMeshActor_3806, label CanalExploration_DockStairs, using the existing
+  SM_stair_01 asset. Final transform: location (-180,650,70), yaw180,
+  scale (-0.36,1,0.95). Stair top connects to the open, water-facing dock edge.
+- No existing floor meshes, repaired slabs, bridge, or character settings changed.
+
+Backup before this change
+_backups/water_exploration_20261023_005927/L_SectorC.umap
+Restore only with the editor closed, and only if reverting all later map changes
+is intended. This is a complete map backup, not a selective actor rollback.
+
+Verification performed
+1. Before change: entering south canal at (0,2000) or (0,3000) returned the player
+   to (0,1400), reproducing the complaint.
+2. Reloaded saved map and checked all four rescue overlap settings.
+3. Physics-driven continuous PIE round trip passed every waypoint:
+   start(0,1400,400) -> (0,500) -> (0,200) -> (500,200) -> (500,500)
+   -> (0,500) -> (0,1400). Only initial placement was teleported; movement between
+   waypoints used the existing AutoMove input harness and normal movement physics.
+   Finished back on dock at capsule center Z358.5. No recovery teleport occurred.
+4. South, middle and north sample placements stayed at their sample locations.
+   These are spot checks, not exhaustive proof that all water connects continuously.
+5. Deliberate void placement(-4000,7000,-500) returned to the dock as expected.
+6. Existing eight-waypoint repaired-landing collision regression passed.
+7. Editor capture visually checked matching stair placement at the green-lit dock.
+
+Evidence
+Saved/WaterExploration/changes.json
+Saved/WaterExploration/verification.json
+Saved/WaterExploration/roundtrip.json
+Saved/CodexFallInvestigation/water_exploration_dock_roundtrip.json
+Saved/CodexFallInvestigation/actual_slab_verified.json
+Saved/CodexFallInvestigation/water_exploration_stairs.png
+
+Known scope
+A route attempted north from the dock was blocked by existing walls/platforms.
+The final stairs serve the open side of the dock. Existing level obstructions
+remain; this change does not redesign the entire canal route.
+Packaged gameplay must be distinguished from the PIE tests above.
+
+Standalone build
+Packaged/Windows_WaterExploration_20261023_011231/Substrate.exe
+BuildCookRun exited 0; build duration 2.87 minutes.
+This new package was built successfully but has NOT been gameplay-tested.
+Previous packaged candidates were preserved.
+Provenance: Saved/WaterExploration/provenance_Windows_WaterExploration_20261023_011231.json
+Build log: Saved/Logs/package_build_waterexploration_20261023_011231.log
+
+User check
+Run the new executable above (older packages retain the water-reset behavior).
+At the green-lit starting dock, use the new stairs into the canal, walk through
+water, then return up the stairs. Space retains its existing jump behavior.

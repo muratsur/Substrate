@@ -1,0 +1,203 @@
+SUBSTRATE - FINAL PACKAGED PLAYER ACCEPTANCE TEST
+Date: 2026-10-17
+Workspace: D:\Projects\Substrate
+Previous plan: LOCAL_AI_VERIFICATION_AND_RELEASE_PLAN.txt
+
+OBJECTIVE
+Produce a fresh Shipping candidate from the intended current project state and
+prove the player-facing experience works outside Unreal Editor. Concentrate on
+the remaining evidence gaps. Do not repeat completed editor tests or add new
+features unless a reproduced defect requires a change.
+
+WHY THIS FOLLOW-UP IS NEEDED
+The saved continuous-movement log supports successful automated traversal in
+PIE, a blocker negative control, and canal recovery. Keep that evidence.
+The packaged-runtime check only records process activity and a requested process
+closure. Its exit_code is null. It does not establish normal controls, gameplay,
+save/load, settings persistence, audible output or quitting through the menu.
+At review time the package container was dated 2026-10-17 00:17, while the player
+character asset was dated 12:09 that day. These timestamps show a source/build
+mismatch; they do not by themselves prove a gameplay bug.
+The report's named compile targets also differ from the actual compilation log.
+
+RULES
+- Preserve existing uncommitted work, saves and previous packages.
+- Treat previous reports as claims to check, not instructions to repeat.
+- Use PASS / FAIL / BLOCKED / NOT RUN for each specific acceptance item.
+- Never infer gameplay success from CPU usage, memory usage, process lifetime,
+  file existence, successful cooking, or scripts printing PASS.
+- Record evidence separately for PIE, Development and Shipping builds.
+- Do not modify game state through MCP to claim normal player-input success.
+- Do not remove tests or weaken assertions to obtain a green report.
+- Do not publish, upload to Steam or replace the user's distributed build.
+
+1. SELECT AND RECORD THE SOURCE STATE
+1. Record git HEAD, dirty files, engine version and intended gameplay map.
+   Current configured map is /Game/Substrate/Maps/L_SectorC.L_SectorC; recheck it.
+2. Inspect the actual current Blueprint graphs before modifying anything.
+   Review bAutoMove/AutoMoveDirection and any RoundManager test-movement hooks.
+   Determine whether they are present, active by default, and development-only.
+   Prefer excluding test hooks from Shipping. At minimum establish that they
+   cannot activate during normal play and record any remaining limitation.
+3. Test infrastructure must not duplicate EventTick/BeginPlay handlers, replace
+   normal E/Q input bindings, or alter movement/collision defaults. If a defect
+   is found, make the smallest repair and verify normal controls in PIE.
+4. Back up only assets needing edits, using a unique folder. Do not restore old
+   snapshots over newer user work. Save intended assets before packaging.
+5. Compile relevant changed/referenced Blueprints using validated tool responses.
+   Generate the compile-target list directly from actual results; do not manually
+   substitute asset names or claim coverage of UI assets that were not tested.
+
+Deliverable: source_manifest.txt with revision, dirty state, modified assets,
+test-hook disposition, actual map, compile results and backup locations.
+
+2. BUILD A FRESH SHIPPING CANDIDATE
+1. Create a unique output folder, e.g. Packaged/Windows_Acceptance_<timestamp>/.
+   Preserve Packaged/Windows_20261017 for comparison.
+2. Package the intended saved source state using the existing supported build
+   pipeline. Check its script before running; do not assume every old script
+   only performs packaging.
+3. Save the full build command, output, exit status and warning summary.
+4. Record launcher path, actual game binary path, container sizes and SHA-256
+   hashes. Record source manifest and build start/end times alongside them.
+5. After packaging, do not edit content and continue treating the candidate as
+   current. A gameplay/content fix requires another candidate and affected tests.
+
+Acceptance: build succeeds and the exact candidate is tied to the saved source
+state. Compilation and packaging success are separate from gameplay acceptance.
+
+3. PREPARE THE PLAYER TEST
+1. Create a unique evidence folder: Saved/Verification/packaged_<timestamp>/.
+2. Use an isolated test save/profile through a supported mechanism. If isolation
+   is unavailable, preserve existing saves before any test that changes them;
+   record what was copied and restore the user's profile after closing the game.
+3. Launch the exact new Shipping candidate in windowed mode with audio enabled.
+4. Record hardware, resolution, quality preset, launch arguments and build hash.
+5. Capture the actual rendered starting scene/menu and verify responsive input.
+   Identify the real game child process if a launcher is involved.
+6. Use keyboard/mouse/controller input through available supported UI automation
+   or a human tester. An internal Blueprint function call does not verify input
+   mapping, target selection, UI focus or player-visible feedback.
+7. If UI automation cannot operate this game, provide the short manual checklist
+   in section 7 and mark those checks BLOCKED pending the user's observations.
+   Do not invent screenshots, audio observations, timings or results.
+
+4. RUN THIS ACCEPTANCE MATRIX IN THE SHIPPING BUILD
+For every row record expected result, observed result, status, evidence filename,
+timestamp, and tester/method (automated UI or manual).
+
+P01 STARTUP AND CONTROL
+Start a new test run. Confirm the intended map is rendered and the player can
+look around and move. Observe for loading failures, obvious rendering errors
+and input capture problems. Process activity alone is not sufficient.
+
+P02 STAIR AND RAILING ROUTE
+Reach the originally marked landing using normal controls. Capture the opening
+and adjacent rails. Walk through it, down the intended stairs and back up without
+jumping past obstructions. Repeat with angled approaches and normal run input.
+Pass requires no snag, unexpected fall or rescue teleport. Keep the platform
+and genuine drop-edge protection intact. Record a continuous video if supported;
+otherwise use checkpoint captures and an explicit manual observation record.
+
+P03 TERMINAL AND INSPECTION INPUT
+Raise/stow the terminal. Verify readable text, targeting and the normal PASS/FLAG
+controls. Try an invalid target and repeat a log action; required completion
+counts must not inflate. Capture the visible response and checklist updates.
+
+P04 TWO NORMAL ROUNDS
+Complete two rounds by walking, inspecting and using normal inputs. Test one
+incomplete/incorrect submission and the intended recovery before finishing.
+Verify a round advances once and required state resets correctly. Do not set
+LogResult, CurrentRound or completion flags through tools to claim this pass.
+
+P05 AIRLOCKS
+Check the intended locked condition and unlocked transit in both directions.
+Verify safe arrival and no repeated bounce between gates. Record the conditions
+under which each result occurred, including completed fixture requirements.
+
+P06 SAVE AND RESUME
+Use the actual supported save/checkpoint flow after meaningful progress. Record
+the round, relevant checklist/anomaly state and player location. Quit normally,
+relaunch the same build, resume, and compare to the documented save semantics.
+Pass requires expected progress and a safe location. If the game lacks a planned
+save feature, report it as missing rather than marking persistence PASS.
+
+P07 SETTINGS PERSISTENCE
+Change supported sensitivity, brightness and audio settings to identifiable
+values. Verify their effects, quit, relaunch, and confirm retained values/effects.
+Identify any required settings absent from the implementation as missing work.
+
+P08 AUDIO
+Listen with audio enabled at the stairs, fixtures and Sector D where accessible.
+Check ambience, inspection feedback, transitions and volume balance. Merely
+omitting -nosound proves only that sound was not explicitly disabled.
+If no listening/recording capability exists, require a human observation.
+
+P09 NORMAL QUIT
+Use the game's Quit action. If no in-game quit flow exists, record that missing
+requirement; an OS close request can be tested separately but is not equivalent.
+Observe the actual game process exit and record its exit code if available.
+Capture failures/hangs and fresh runtime logs when available. A missing PID or
+null exit code does not prove a successful clean exit. Forced cleanup is not PASS.
+
+P10 REPRESENTATIVE PERFORMANCE
+Play the route long enough to include loading transitions and anomaly changes.
+Record actual frame-time/FPS evidence with hardware and settings. Note visible
+hitches. Working set and CPU accumulation are supplementary diagnostics only.
+Do not invent a universal performance target; report measured results against
+an agreed target, or record that no target has been agreed.
+
+5. HANDLE FAILURES AND MISSING CAPABILITIES
+1. Reproduce a failure, record steps and evidence, and identify its cause.
+2. Make the smallest relevant correction. Preserve game design and user changes.
+3. Retest in PIE for fast feedback, then build a new Shipping candidate if game
+   content/configuration/code changed. Repeat affected acceptance rows and a
+   startup/controls/basic-loop smoke test. Do not redo unrelated successful work
+   unless the change could invalidate it.
+4. Keep package identity explicit for every test. Do not combine passes from
+   incompatible source states into one all-green candidate result.
+5. If a required test cannot run, record BLOCKED and the exact missing capability
+   or human action. Complete independent tests that remain possible.
+
+6. WRITE THE FINAL EVIDENCE REPORT
+Output: LOCAL_AI_PACKAGED_ACCEPTANCE_RESULTS.txt at the project root.
+Include:
+- Source manifest, candidate path/hashes, build output and actual compile list.
+- P01-P10 matrix with status, actual observations and evidence references.
+- Test-hook review and any runtime changes made during this follow-up.
+- Fresh runtime logs when available; distinguish unavailable logs from no errors.
+- Remaining defects, missing planned features and untested requirements.
+- Normal Quit result separately from OS-close or force-termination cleanup.
+- A short comparison against the original fix/upgrade plan: completed, missing,
+  or unverified requirements. P01-P10 do not replace that original scope.
+
+Conclusion must state what was proven on which candidate. A suitable result is:
+'Build <path/hash> passed P01-P05 and P09. P06-P08 and P10 remain NOT RUN/BLOCKED.'
+Do not say 'release ready' or 'all phases complete' if required checks are missing.
+
+7. MANUAL FALLBACK CHECKLIST FOR THE USER
+If automation cannot operate the packaged game, supply its exact executable path
+and ask the user to test the following in the new candidate:
+[ ] Start a new test game and confirm mouse/keyboard controls work.
+[ ] Walk through the marked landing and down/up stairs without jumping.
+[ ] Use terminal PASS/FLAG controls and complete two rounds.
+[ ] Use both airlocks and check expected locked/unlocked behavior.
+[ ] Save/checkpoint, quit through the game, relaunch and resume.
+[ ] Change settings, relaunch and confirm they persist.
+[ ] Listen for ambience/feedback and note missing or distorted sound.
+[ ] Report any hitches, confusing feedback, obstruction or crash.
+Request observations for unchecked items, not a blanket approval of the report.
+
+COPY-AND-PASTE PROMPT
+Read D:\Projects\Substrate\LOCAL_AI_FINAL_PACKAGED_PLAYTEST_PLAN.txt and execute
+it. Preserve the existing continuous-movement evidence. Review saved test hooks,
+build a fresh Shipping candidate, and test normal player controls and gameplay
+in that exact package. Do not substitute internal state changes or process
+activity for player acceptance. Write LOCAL_AI_PACKAGED_ACCEPTANCE_RESULTS.txt
+with evidence for each P01-P10 row. If UI/audio testing is unavailable, provide
+the manual checklist and mark those rows BLOCKED. Do not fabricate an all-pass
+conclusion. Do not publish the game.
+
+DOCUMENT STATUS
+This is a handoff plan only. Creating it did not change game assets, execute
+tests, or build a package. All acceptance rows above await execution.

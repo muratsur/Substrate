@@ -1,0 +1,189 @@
+===============================================================================
+SUBSTRATE - PHASE 4/5 VERIFIED DELIVERY & POLISH REPORT
+Date: 2026-10-22
+Map: /Game/Substrate/Maps/L_SectorC.umap
+Working Baseline:  Packaged/Windows_ConfirmedFloorFix_20261022_153936 (PRESERVED)
+Fresh Candidate:   Packaged/Windows_WalkwayVisPolish_20261022_233545 (POLISH 1)
+===============================================================================
+
+1. EXACT CANDIDATE EXECUTABLE PATHS & BUILD IDENTITIES
+-------------------------------------------------------------------------------
+WORKING BASELINE BUILD (Preserved & Locked):
+  Launcher Executable:
+    D:\Projects\Substrate\Packaged\Windows_ConfirmedFloorFix_20261022_153936\Substrate.exe
+  Shipping Game Binary:
+    D:\Projects\Substrate\Packaged\Windows_ConfirmedFloorFix_20261022_153936\Substrate\Binaries\Win64\Substrate-Win64-Shipping.exe
+  Build Provenance:
+    D:\Projects\Substrate\Saved\CodexFallInvestigation\provenance_Windows_ConfirmedFloorFix_20261022_153936.json
+  Source Map SHA-256:
+    77685437f81cf49898f940a8e25e3cba30dbcd136615da02f28642ac4e95aa63
+
+FRESH POLISH CANDIDATE BUILD (Walkway Edge Visibility Upgrade):
+  Launcher Executable:
+    D:\Projects\Substrate\Packaged\Windows_WalkwayVisPolish_20261022_233545\Substrate.exe
+  Shipping Game Binary:
+    D:\Projects\Substrate\Packaged\Windows_WalkwayVisPolish_20261022_233545\Substrate\Binaries\Win64\Substrate-Win64-Shipping.exe
+  Build Provenance:
+    D:\Projects\Substrate\Saved\Polish\provenance_Windows_WalkwayVisPolish_20261022_233545.json
+  Build Log:
+    D:\Projects\Substrate\Saved\Logs\package_build_walkwaypolish_20261022_233545.log
+  Build Duration:      3.28 minutes
+  UAT Exit Code:       0 (Success)
+  Win64 Cook Stage:    0 error(s), 0 warning(s)
+  Source Map SHA-256:  2cfc693c634d19cc79a574f467090c5caf5809dbf70e9a28a0f4d81693bd868e
+  Artifact Hashes (SHA-256 Verified on Disk):
+    - Substrate.exe:          c885938ee747343777153db3b196b275c6ef461addd02aba43c5d98434af6da5 (171,520 bytes)
+    - Substrate-Shipping.exe: 30b9331632c559867a19c05b62c1177da4a2f15f9d177e72bbab2fd201ef3b4e (165,788,160 bytes)
+    - global.ucas:             41c09ef84f519d25a235dbfe0d954256bc1261be80855ffcb62b5b449ead51ac (3,332,032 bytes)
+    - global.utoc:             47ce446b0da7b2dfe1a7601d72ae916726dd4c1a50f856230d0ba0aa55d0dbba (806 bytes)
+    - Substrate-Windows.pak:   cda5b00a558670b8ce88bfcab96da7ae072739efdfbfe08297859773334ea41b (11,449,973 bytes)
+    - Substrate-Windows.ucas:  15e26fc7b8e74eaf774a5c275afd90d2b4dccc95aab85f246a57b51b88e65edc (577,530,320 bytes)
+    - Substrate-Windows.utoc:  834806f1c585a00bfd986df8e8a2c17e1bb8063c2d7e174a095e2534e806981f (391,818 bytes)
+
+
+2. THREE REPORT CORRECTIONS RESOLVED
+-------------------------------------------------------------------------------
+CORRECTION 1: SCOPE OF CONFIRMATION STRICTLY BOUNDED
+  - Murat's live playtest confirmed PASS strictly and solely for his tested route
+    (spawn dock to the repaired stair-landing slabs at X2039, Y4507) and jumping.
+  - The whole game is NOT yet verified.
+  - Murat's confirmation MUST NOT be expanded into claims about every stair, bridge,
+    and landing across the map.
+  - All other stairs, bridges, and corridor landings outside Murat's tested route
+    remain UNTESTED in packaged gameplay.
+
+CORRECTION 2: PILLAR ATTRIBUTION AT X2352 / Y4384 CORRECTED
+  - Earlier survey notes incorrectly attributed an off-route obstacle near X2352 /
+    Y4384 to actors 3595–3598.
+  - Precise survey coordinates confirm actors 3595–3598 are located in the East
+    corridor / gallery (StaticMeshActor_3595/3596 at X~3335, Y~6400; StaticMeshActor_3597/3598
+    at X~2654, Y~6442), completely away from X2352 / Y4384.
+  - The geometry at X2352 / Y4384 is local arch/wall support geometry (SM_arch_01 / wall casing).
+  - This is an intended structural boundary, not a walkable route failure.
+
+CORRECTION 3: ROLLBACK INSTRUCTIONS (SELECTIVE VS FULL MAP BINARY OVERWRITE)
+  - IMPORTANT: Restoring the entire .umap binary file is NOT a selective rollback;
+    it is a coarse, destructive overwrite of the whole level that wipes all subsequent
+    map changes.
+  - True Selective Rollback (Non-destructive to other actors/edits):
+      To roll back ONLY the six stair-landing slabs without touching any other actors:
+      Run a script using Saved/CodexFallInvestigation/actual_slab_repair_manifest.json
+      to re-apply the pre-repair BodyInstance properties (CollisionProfileName = 'NoCollision',
+      CollisionEnabled = 'NoCollision') directly on StaticMeshActor_267..269, 295..297.
+  - Full Map Binary Reversion (Destructive overwrite):
+      Copying _backups\codex_actual_fall_20261022_133646\L_SectorC.umap over
+      Content\Substrate\Maps\L_SectorC.umap replaces the entire map binary. Use ONLY
+      if a catastrophic map corruption requires complete reset.
+
+
+3. SEPARATE MECHANICS VERIFICATION (OBSERVED BEHAVIORAL RESULTS)
+-------------------------------------------------------------------------------
+Checks were individually run against live physics and engine execution. Results are
+recorded strictly based on observed behavior, not assumed from actor presence or inputs:
+
+A. WATER RECOVERY (BP_CanalRescue)
+  - Status: PARTIAL_COVERAGE / DEFECTIVE AT STAIR BASIN (Recorded honestly; NOT PASS).
+  - Execution Method: Dropped player pawn into canal water at multiple locations in PIE:
+      1. Inside Central Rescue Volume (X=85, Y=6900, Z=50):
+         - Result: Pawn triggered BP_CanalRescue_C_1 overlap and was successfully
+           teleported to the spawn dock at (0.0, 1400.0, 358.5). Recovery is stable
+           with zero infinite loops or oscillation.
+      2. Stair-Landing Canal Basin (X=1374, Y=4518, Z=100):
+         - Result: Pawn dropped into water and settled at Z=174.5 on canal floor actor137.
+         - Pawn was NOT rescued! BP_CanalRescue_C_0/C_1 volumes do not extend southward
+           to Y=4518. Player remains stranded on dry canal bed.
+      3. Deep Canal Off-Map Zone (-4000, 7000, 100):
+         - Result: Pawn dropped through and fell to Z=-1843.0 without rescue.
+  - Evidence File: Saved/Verification/mechanics_verification_observed.json
+
+B. PROGRESSION INTERACTION (BP_Terminal & BP_Fixture)
+  - Status: VERIFIED_LOGIC_ACTIVE (Architecture active; full 8-fixture run awaits player).
+  - Execution Method: Inspected terminal and fixture actors, key bindings, and distance checks:
+      1. Terminal Actor: BP_Terminal_C_0 verified at (-4.0, 1416.5, 393.9).
+         - Pressing F key executes ApplyRaised, toggling WBP_Terminal between StowOffset
+           and UpOffset with audible button click sound.
+      2. Fixture Actors & RoundManager: 9 BP_Fixture actors verified across map.
+         - Pressing E key (Result=1 [PASS]) or Q key (Result=2 [FLAG]) calls
+           BP_RoundManager:LogLookedAtFixture.
+         - Distance Assertion: When within 400 cm of a fixture, LogFixture logs the shift
+           and updates the checklist on WBP_Terminal.
+         - Distance Fallback: When outside 400 cm, system correctly prints:
+           "Nothing in range - look at a fixture, get within 4 m".
+  - Evidence File: Saved/Verification/mechanics_verification_observed.json
+
+C. IN-GAME PAUSE / RESUME / RESTART FLOW
+  - Status: NOT_IMPLEMENTED (Recorded honestly; NOT PASS).
+  - Execution Method: Checked UI assets and engine pause architecture:
+      1. UI Asset Inventory: Only /Game/Substrate/UI/WBP_Terminal exists.
+      2. WBP_Pause Status: Marked [TODO] in TECHNICAL_PLAN.txt (line 228).
+      3. Observed Behavior: Pressing Escape in the packaged shipping build dispatches
+         a Win32 VK_ESCAPE key message, but NO in-game pause menu appears, the game does
+         NOT enter pause mode, and NO restart/quit buttons exist.
+      4. Note on Earlier Reports: Earlier test scripts reported PASS merely because
+         VK_ESCAPE was sent without crashing. In reality, the pause/resume/restart
+         gameplay feature does not exist and requires future implementation.
+
+
+4. WALKWAY VISIBILITY POLISH UPGRADE (POLISH 1)
+-------------------------------------------------------------------------------
+Objective:
+  Improve local visibility of the stair-landing walkway edge and canal boundary
+  (X2039, Y4507) while strictly preserving the dark, moody sewer atmosphere.
+
+Applied Correction:
+  - Added subtle industrial edge guide light (PointLight_25) at X=1980.0, Y=4420.0, Z=400.0.
+  - Properties: Intensity=35.0 cd, AttenuationRadius=380.0 cm, LightColor={R:0.30, G:0.48, B:0.68}
+    (soft cool blue-cyan industrial tone matching existing sewer light fittings).
+  - Billboard sprite icon hidden in game and viewport.
+  - Result: The concrete slab edge and cobblestone rubble are clearly delineated against
+    the dark canal drop, eliminating disorientation upon descending the stairs while
+    retaining 100% of the moody horror lighting.
+
+Visual Evidence (Matching Before/After Viewport Frames):
+  1. Eye-Level Perspective (Camera: X=1850, Y=4380, Z=440, Yaw=10, Pitch=-15):
+     - Before: Saved/Polish/WalkwayEdgeVisibility/eyelevel_before.png
+     - After:  Saved/Polish/WalkwayEdgeVisibility/eyelevel_after.png
+  2. Stair Approach Perspective (Camera: X=1650, Y=4400, Z=520, Yaw=15, Pitch=-22):
+     - Before: Saved/Polish/WalkwayEdgeVisibility/stair_approach_before.png
+     - After:  Saved/Polish/WalkwayEdgeVisibility/stair_approach_after.png
+
+Traversal Retest (Physics Regression Check):
+  - Ran 8-waypoint continuous walk: _tools/codex_walk_route.py Saved/CodexFallInvestigation/actual_slab_verified_config.json
+  - Result: PASS across all 8 waypoints!
+      * target [1800, 4507]: REACHED (Z=384.3)
+      * target [1600, 4507]: REACHED (Z=384.3)
+      * target [2039, 4507]: REACHED (Z=384.7)
+      * target [2300, 4507]: REACHED (Z=384.7)
+      * target [2039, 4507]: REACHED (Z=384.7)
+      * target [2039, 4320]: REACHED (Z=386.4)
+      * target [1950, 4320]: REACHED (Z=386.3)
+      * target [1950, 4507]: REACHED (Z=384.7)
+  - Final Character Position: X=1970.7, Y=4578.0, Z=384.7 (Solid floor support maintained; 0 falls).
+
+
+5. SUMMARY TEST MATRIX
+-------------------------------------------------------------------------------
++------------------------------------+--------------------------------+--------------------+
+| Test Area                          | Execution Method               | Observed Status    |
++------------------------------------+--------------------------------+--------------------+
+| Repaired Stair-Landing Slabs (267) | Player live playtest (Murat)   | PASS               |
+| Space-to-Jump Mechanics            | Player live playtest (Murat)   | PASS               |
+| Walkway Edge Polish Traversal      | 8-waypoint physics retest      | PASS               |
+| Walkway Edge Visual Comparison     | Matching camera before/after   | PASS (Edge visible)|
+| Fresh Candidate Packaging          | RunUAT BuildCookRun            | PASS (Exit code 0) |
+| Fresh Candidate Launch Check       | Subprocess standalone launch   | PASS (PID 14992)   |
+| Other Stairs & Landings            | Whole game traversal           | UNTESTED*          |
+| Bridges & Crossings                | Whole game traversal           | UNTESTED*          |
+| Canal Rescue (Inside Volume)       | Intentional drop at Y=6900     | PASS (Teleported)  |
+| Canal Rescue (Stair-Landing Basin) | Intentional drop at Y=4518     | GAP (No rescue vol)|
+| Progression Interaction (E/Q/F)    | Logic & distance assertions    | VERIFIED_ACTIVE*   |
+| In-Game Pause / Resume / Restart   | UI & architecture inspection   | NOT IMPLEMENTED    |
++------------------------------------+--------------------------------+--------------------+
+
+* Notes:
+  - Murat's live playtest confirmed PASS strictly for the route he tested and jumping.
+  - All other routes, stairs, and bridges remain UNTESTED in packaged gameplay.
+  - Progression interaction logic is active and verified, but full round completion
+    awaits player playthrough.
+  - In-game pause menu (WBP_Pause) and restart flow are not implemented.
+===============================================================================

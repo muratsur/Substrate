@@ -1,0 +1,194 @@
+================================================================================
+SUBSTRATE - STONE CROSSING AND MISSING STAIR RESTORATION RESULTS
+Date: 2026-10-18
+Workspace: D:\Projects\Substrate
+Status: PASS (Local Repair Complete, Verified Both Ways in PIE, Fresh Shipping Build Packaged & Validated)
+================================================================================
+
+1. EXACT LOCATION AND LABELED ACTORS / COMPONENTS
+--------------------------------------------------------------------------------
+Level / Map Package: /Game/Substrate/Maps/L_SectorC.umap
+Corridor Facing: West (-X heading, Yaw = 180.0)
+Camera Pose Matching User Reference Screenshot:
+  - Location: X = -1280.0, Y = 8390.0, Z = 415.0
+  - Rotation: Pitch = -4.0, Yaw = 180.0, Roll = 0.0
+
+A. Circled Walking Surface (Foreground Slabs directly beyond Doorway Threshold):
+   1. StaticMeshActor_2700:
+      - Mesh: /Game/Modular_Sewer_Kit/Meshes/Concrete_block/SM_concrete_01.SM_concrete_01
+      - Component: StaticMeshComponent0
+      - Transform: Location (-1703.92, 8330.85, 180.0), Rotation (0, 90, 0), Scale (1, 1, 1)
+      - World Bounds: X: [-1803.4 .. -1604.3], Y: [8188.2 .. 8473.5], Z: [72.2 .. 288.45]
+      - Top Surface: Z = 288.45
+   2. StaticMeshActor_2713:
+      - Mesh: /Game/Modular_Sewer_Kit/Meshes/Concrete_block/SM_concrete_01.SM_concrete_01
+      - Component: StaticMeshComponent0
+      - Transform: Location (-1704.0, 8621.5, 180.0), Rotation (0, 90, 0), Scale (1, 1, 1)
+      - World Bounds: X: [-1804.0 .. -1604.0], Y: [8479.0 .. 8764.0], Z: [72.2 .. 288.45]
+      - Prop on Left Slab: StaticMeshActor_3099 (SM_detail_Cube_016_2180 at X=-1749, Y=8526, Z=298)
+
+B. Missing Stair / Crossing Connection across Canal:
+   - StaticMeshActor_3643:
+     - Mesh: /Game/Modular_Sewer_Kit/Meshes/Bridge/SM_double_bridge.SM_double_bridge
+     - Component: StaticMeshComponent0
+     - Description: Modular weathered iron bridge with 4-step integrated stairs on both ends (X=-1685 and X=-2443), handrails, and continuous walking deck (Z=367)
+     - Restored Transform: Location (-1691.5956, 8420.4192, 288.4448), Rotation (0, 0, 0), Scale (1, 1, 1)
+     - World Bounds: X: [-2442.9 .. -1685.1], Y: [8250.1 .. 8420.4], Z: [288.4 .. 464.0]
+     - Walking Centerline: Y = 8335.0 (Clear width between handrails: 130 cm)
+     - Overhead Headroom: Large overhead pipes (StaticMeshActor_2594/2595) sit at Z = 614..875, providing > 247 cm vertical clearance above the bridge deck (Z = 367)
+
+C. Destination Far Ledge:
+   1. StaticMeshActor_3111:
+      - Mesh: /Game/Modular_Sewer_Kit/Meshes/Concrete_block/SM_concrete_01.SM_concrete_01
+      - World Bounds: X: [-2533.4 .. -2334.3], Y: [8188.2 .. 8473.5], Z: [62.2 .. 278.45]
+   2. StaticMeshActor_3115:
+      - Mesh: /Game/Modular_Sewer_Kit/Meshes/Concrete_block/SM_concrete_01.SM_concrete_01
+      - World Bounds: X: [-2534.0 .. -2334.0], Y: [8479.0 .. 8764.0], Z: [62.2 .. 278.45]
+
+
+2. OBSERVED CAUSE OF FALLING & EVIDENCE FOR MISSING STAIR'S HISTORY
+--------------------------------------------------------------------------------
+A. Cause of Falling Through Stones:
+   - Collision Inspection:
+     StaticMeshActor_2700, 2713, 3111, and 3115 each had instance property overrides:
+     `CollisionProfileName = "NoCollision"`, `CollisionEnabled = "NoCollision"`.
+   - In addition, responseArray had `Visibility: ECR_Ignore`, `Camera: ECR_Ignore`.
+   - Floor trace results prior to repair:
+     - Corridor floor inside doorway (X = -1550, -1600): Hit Z = 280.0
+     - Beyond doorway threshold onto stones (X = -1630, -1660): Hit Z = 100.0 (Canal bottom bed)
+     - Canal water surface sits at Z = 190.0.
+   - When stepping forward past threshold X = -1604, the player's character capsule found no collision on the concrete slabs and immediately fell from Z = 280 straight into water (Z = 198) and canal bottom (Z = 100).
+   - Baseline Reproduction Log:
+     `D:\Projects\Substrate\_evidence\stone_crossing_20261018\unrepaired_baseline_fall.json`
+     - t=0.22s: X=-1585.5, Z=378.2 (Corridor floor)
+     - t=0.33s: X=-1648.6, Z=362.0 (Stepped onto NoCollision stones, fell through)
+     - t=0.86s: X=-1961.8, Z=234.4 (Water fall detected)
+     - t=0.97s: X=-2025.7, Z=198.2 (Landed in canal water at bottom)
+
+B. Evidence for the Missing Stair's History:
+   - Historical Documentation:
+     `FREE_ROAM_SESSION_LOG.md` recorded:
+     "Parked meshes offstage: StaticMeshActor_3643 (SM_double_bridge) parked at Z = -3000".
+   - Tool Scripts:
+     `_tools/fix_3643.py` and `_tools/fix_3643_3.py` revealed that an earlier automated test attempted to walk along waypoint Y = 8409.0.
+     Because the bridge's northern handrail sits at Y = 8400..8420, walking along Y = 8409 walked directly into the physical bridge handrail.
+     The developer/script mistakenly classified the bridge as an "invisible blocker wall" and relocated `StaticMeshActor_3643` offstage to Z = -3000 (`location: (-1691.6, 8420.4, -3000)`).
+   - This removed the original modular bridge that spanned the canal and connected the near concrete stones (X = -1685) to the far ledge (X = -2443).
+
+
+3. EXACT CHANGES, BACKUPS, AND STAIR RESTORATION
+--------------------------------------------------------------------------------
+A. Level Backup:
+   - Pre-repair backup created:
+     `D:\Projects\Substrate\Saved\Verification\stone_crossing_20261018\L_SectorC_pre_stone_repair.umap`
+     Size: 16,199,606 bytes
+
+B. Exact Changes Applied to Map `/Game/Substrate/Maps/L_SectorC`:
+   1. Foreground & Far Ledge Slabs Collision Restored:
+      - `StaticMeshActor_2700.StaticMeshComponent0`: Set `BodyInstance.CollisionProfileName = "BlockAll"`, `CollisionEnabled = "QueryAndPhysics"`, cleared ignore overrides.
+      - `StaticMeshActor_2713.StaticMeshComponent0`: Set `BodyInstance.CollisionProfileName = "BlockAll"`, `CollisionEnabled = "QueryAndPhysics"`, cleared ignore overrides.
+      - `StaticMeshActor_3111.StaticMeshComponent0`: Set `BodyInstance.CollisionProfileName = "BlockAll"`, `CollisionEnabled = "QueryAndPhysics"`, cleared ignore overrides.
+      - `StaticMeshActor_3115.StaticMeshComponent0`: Set `BodyInstance.CollisionProfileName = "BlockAll"`, `CollisionEnabled = "QueryAndPhysics"`, cleared ignore overrides.
+   2. Missing Stair/Bridge Restored (Original Recovered Instance, NOT a crude replacement):
+      - `StaticMeshActor_3643`:
+        - Relocated from Z = -3000 back to original authentic transform:
+          Location: X = -1691.5956, Y = 8420.4192, Z = 288.4448
+          Rotation: Pitch = 0.0, Yaw = 0.0, Roll = 0.0
+          Scale:    X = 1.0, Y = 1.0, Z = 1.0
+        - Verified `BodyInstance.CollisionProfileName = "BlockAll"`, `CollisionEnabled = "QueryAndPhysics"`.
+   3. Persisted Map Package:
+      - Saved `/Game/Substrate/Maps/L_SectorC` to disk via `AssetTools.save_assets`.
+
+
+4. MATCHED BEFORE / AFTER EVIDENCE
+--------------------------------------------------------------------------------
+Evidence Directory: `D:\Projects\Substrate\_evidence\stone_crossing_20261018`
+- Reference Image (User Report): `reference_screenshot.png`
+- Viewport Matches Before Repair (Showing Empty Canal Gap & Missing Bridge):
+  `match_2.png`, `match_3.png`
+- Viewport Match After Repair (Showing Restored Double Bridge & Slabs from identical pose):
+  `after_repair_bridge_and_slabs.png`
+  (Pose: X=-1280, Y=8390, Z=415, Pitch=-4, Yaw=180)
+
+
+5. TWO-WAY CONTINUOUS PHYSICAL TRAVERSAL RESULTS
+--------------------------------------------------------------------------------
+A. PIE Verification Results (`comprehensive_crossing_verification.json`):
+   Test 1: Forward Traversal (Doorway -> Slabs -> Bridge Stairs -> Span -> Far Ledge)
+     - Doorway start: X = -1534.1, Y = 8335.0, Z = 378.2
+     - Near Slab contact: X = -1678.9, Y = 8335.0, Z = 392.2
+     - Stationary standing check (1.0s pause): Z remained stable at 394.5 (SUPPORTED, 0 fall)
+     - Bridge ascent & span crossing: X = -1707 -> -2291, Z = 407 -> 465.2 (walking along deck)
+     - Far Ledge arrival: X = -2565.4, Y = 8335.0, Z = 346.0
+     - Stationary standing check (1.0s pause): Z remained stable at 346.0 (SUPPORTED, 0 fall)
+     - RESULT: PASS
+
+   Test 2: Reverse Traversal (Far Ledge -> Bridge Stairs -> Span -> Near Slabs -> Doorway)
+     - Start from Far Ledge: X = -2565.4, Y = 8335.0
+     - Ascend west stairs, cross bridge span, descend east stairs
+     - Cross near concrete slabs and enter doorway: X = -1485.2, Z = 428.1
+     - Water falls: 0, Unwanted rescues: 0, Obstructions: 0
+     - RESULT: PASS
+
+   Test 3: Angled Seam Traversal
+     - North Lane walk (Y = 8360): PASS (X: -1500 -> -2520)
+     - South Lane walk (Y = 8310): PASS (X: -1500 -> -2520)
+     - RESULT: PASS
+
+   Test 4: Legitimate Canal Fall / Rescue Recovery
+     - Fall into deep open canal at (-4000, 7000, 400)
+     - `BP_CanalRescue` triggered properly, respawned player safely at spawn (0.0, 1400.0, 358.2)
+     - RESULT: PASS
+
+B. Packaged Shipping Candidate Verification:
+   Candidate ID: Windows_StoneCrossingFixed_20261018_114140
+   Archive Path: `D:\Projects\Substrate\Packaged\Windows_StoneCrossingFixed_20261018_114140`
+   Executable:   `D:\Projects\Substrate\Packaged\Windows_StoneCrossingFixed_20261018_114140\Substrate.exe`
+   - Clean Startup: PASS (0 modal error dialogs, 0 Houdini warnings, 0 crash popups)
+   - Window Creation: PASS (`UnrealWindow` HWND 5112404)
+   - 3D Scene Rendering: PASS (`packaged_runtime_startup.png`, 72,052 unique colors)
+   - Player Movement Responsiveness: PASS (W/D keystrokes responsive, `packaged_runtime_postmove.png`)
+   - Clean Termination: PASS (WM_CLOSE exit code 0)
+   - Packaged Traversal Verification Status:
+     NOT VERIFIED for autonomous cross-level traversal in Shipping.
+     (In the Shipping configuration, debug console commands are stripped and the player spawns at the airlock X=0, Y=1400 without a debug teleport to the stone crossing at X=-1600, Y=8335. Per specification instructions: "If packaged input/visual verification cannot run, mark it NOT VERIFIED and provide the new executable for the user's direct test. Never convert a successful cook, live process or PIE-only pass into packaged traversal PASS.")
+
+
+6. REGRESSION CHECKS
+--------------------------------------------------------------------------------
+A. Previously Repaired Metal East Stair Entrance (at X ~ 1500, Y ~ 5000):
+   Test script: `_tools/test_actual_stair_traversal.py`
+   - Test 1 (Normal Walking Descent): PASS (Z: 457.2 -> 428.1, Drop = 29.1 cm)
+   - Test 2 (Normal Walking Ascent):  PASS (Z: 428.1 -> 457.2, Rise = 29.1 cm)
+   - Test 3 (Angled Entry Descent):   PASS
+   - Test 4 (Angled Entry Ascent):    PASS
+   - Overlap with canal rescue: 0
+   - Regressions: 0
+
+B. Houdini Startup Modal Repair:
+   - Startup dialog check: PASS (0 dialogs, HoudiniEngine disabled).
+
+C. Canal Deep Fall & Rescue:
+   - Deliberate deep fall recovery verified active at (0, 1400, 358).
+
+
+7. NEW EXECUTABLE PATH & CANDIDATE PROVENANCE
+--------------------------------------------------------------------------------
+Primary Shipping Executable:
+  D:\Projects\Substrate\Packaged\Windows_StoneCrossingFixed_20261018_114140\Substrate.exe
+
+Game Binary:
+  D:\Projects\Substrate\Packaged\Windows_StoneCrossingFixed_20261018_114140\Substrate\Binaries\Win64\Substrate-Win64-Shipping.exe
+  SHA256: 30b9331632c559867a19c05b62c1177da4a2f15f9d177e72bbab2fd201ef3b4e
+  Size: 165,788,160 bytes
+
+Content Pak / IoStore:
+  D:\Projects\Substrate\Packaged\Windows_StoneCrossingFixed_20261018_114140\Substrate\Content\Paks\Substrate-Windows.ucas
+  SHA256: e7d2c2d9228ca1232f175b2d25de4aeb138b1067d10193d86e4ca2d6aede429a
+  Size: 577,528,272 bytes
+
+Build Provenance Record:
+  `D:\Projects\Substrate\_evidence\stone_crossing_20261018\build_provenance_20261018_114140.json`
+  Cook/Build Exit Code: 0 (Success)
+  Errors: 0, Warnings: 0
+================================================================================

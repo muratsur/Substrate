@@ -1,0 +1,168 @@
+================================================================================
+SUBSTRATE - HOUDINI STARTUP BLOCKER FIX & PACKAGED ACCEPTANCE REPORT
+================================================================================
+Date: 2026-10-17
+Workspace: D:\Projects\Substrate
+Candidate: D:\Projects\Substrate\Packaged\Windows_HoudiniFixed_20261017_131500\Substrate.exe
+Evidence Directory: D:\Projects\Substrate\Saved\Verification\houdini_fix_20261017_131500\
+
+================================================================================
+1. EXECUTIVE SUMMARY & VERIFICATION STATUS
+================================================================================
+- Startup Error Blocker Fix: PASS
+  The modal startup crash ("Plugin 'HoudiniEngine' failed to load because module
+  'HoudiniEngineRuntime' could not be found") has been definitively eliminated.
+  The game now launches cleanly into its native UnrealWindow without error dialogs.
+
+- Negative Control Verification: PASS (Failure Confirmed)
+  Tested against the previous failing package:
+  D:\Projects\Substrate\Packaged\Windows_Acceptance_20261017_124500\Substrate.exe
+  The test harness correctly detected the modal error dialog:
+    HWND=0x110D36, Title='Message', Class='#32770'
+    Text: "Plugin 'HoudiniEngine' failed to load because module 'HoudiniEngineRuntime'
+           could not be found. Please ensure the plugin is properly installed,
+           otherwise consider disabling the plugin for this project."
+  Evidence captured:
+  Saved/Verification/houdini_fix_20261017_131500/negative_control_error_dialog.png
+
+- Candidate Window Initialization: PASS
+  Target: Packaged/Windows_HoudiniFixed_20261017_131500/Substrate.exe
+  Launched standalone outside the editor.
+  Visible Windows:
+    - HWND=0x1D0D12, Title='Substrate  ', Class='UnrealWindow', Size=1296x759
+    - Zero modal error dialogs (#32770 or Message).
+  Evidence captured:
+  Saved/Verification/houdini_fix_20261017_131500/candidate_rendered_gameplay.png
+
+- In-Game 3D Traversal, Performance (FPS/Frame-Time) & Menu Quit: NOT VERIFIED
+  (Requires direct player acceptance test using the provided executable path).
+  Build success and window creation do not guarantee unencumbered manual traversal
+  or menu behavior under full DirectX 12 hardware swapchain presentation.
+
+================================================================================
+2. ROOT CAUSE & DEPENDENCY AUDIT
+================================================================================
+- Root Cause Analysis:
+  1. Engine Plugin Definition:
+     C:\Program Files\Epic Games\UE_5.8\Engine\Plugins\Runtime\HoudiniEngine\HoudiniEngine.uplugin
+     declares "EnabledByDefault": true and defines a module "HoudiniEngineRuntime"
+     with "Type": "Runtime".
+  2. Missing Engine Shipping Binary:
+     The engine directory at Engine\Plugins\Runtime\HoudiniEngine\Binaries\Win64
+     contains ONLY editor binaries:
+       - UnrealEditor-HoudiniEngine.dll
+       - UnrealEditor-HoudiniEngineEditor.dll
+       - UnrealEditor-HoudiniEngineRuntime.dll
+       - UnrealEditor.modules
+     There was NEVER an UnrealGame-Win64-Shipping-HoudiniEngineRuntime.dll provided
+     with the installed engine.
+  3. Game Dependency Check:
+     An exhaustive audit of Config/, Content/, and L_SectorC.umap confirmed:
+       - Zero Houdini actors or components exist in any map or Blueprint.
+       - Zero assets reference /Script/HoudiniEngineRuntime.
+       - The game project does not use Houdini at runtime; Houdini was authoring-only.
+  4. Packaging Inheritance:
+     Generic content-only packaging inherited the engine's EnabledByDefault=true,
+     requesting HoudiniEngineRuntime in the cooked package manifest. When launched,
+     UnrealGame-Win64-Shipping.exe attempted to load the nonexistent shipping DLL
+     and halted on the modal MessageBox.
+  5. Harness Flaw Discovered:
+     The prior smoke test harness checked only `proc.poll() is None`. Because a
+     modal MessageBox keeps the host process alive, the previous test reported
+     "PASS (Running healthy)" on a completely blocked application.
+
+================================================================================
+3. APPLIED FIX & TECHNICAL IMPLEMENTATION (PATH A)
+================================================================================
+- Substrate.uproject Update:
+  Preserved backup at:
+  _backups/houdini_fix_20261017_1315/Substrate.uproject
+
+  Added explicit per-project disablement entry in the Plugins array:
+  {
+      "Name": "HoudiniEngine",
+      "Enabled": false
+  }
+
+- UE 5.8 Hybrid Project Target Resolution:
+  In Unreal Engine 5.8, disabling an EnabledByDefault engine runtime plugin in a
+  content-only project causes NativeProjects.cs (UBT) to classify the project as a
+  "hybrid content-only project" (RequiresTempTargetForCodePlugin returns true).
+  UBT generates temporary target files in Intermediate/Source:
+    - Substrate.Target.cs (Game target)
+    - SubstrateEditor.Target.cs (Editor target)
+    - Substrate.Build.cs
+    - Substrate.cpp
+
+- Native Toolchain Compilation:
+  1. Built the native shipping binary via UnrealBuildTool using Visual Studio 2022
+     BuildTools (MSVC 14.44.35207, Windows SDK 10.0.26100.0):
+     Output: Binaries/Win64/Substrate-Win64-Shipping.exe (165,788,160 bytes)
+     Receipt: Binaries/Win64/Substrate-Win64-Shipping.target
+  2. Built SubstrateEditor Development to generate SubstrateEditor.target,
+     satisfying AutomationTool's receipt check during cooking.
+
+================================================================================
+4. FRESH CANDIDATE BUILD PROVENANCE
+================================================================================
+- Timestamp: 20261017_131500
+- Staging / Archive Directory:
+  D:\Projects\Substrate\Packaged\Windows_HoudiniFixed_20261017_131500
+- UAT Command:
+  RunUAT.bat BuildCookRun -project=D:\Projects\Substrate\Substrate.uproject
+  -noP4 -platform=Win64 -clientconfig=Shipping -build -cook -stage -pak
+  -package -archive -archivedirectory=... -unattended -utf8output
+- UAT Duration: 3.39 minutes (Exit code: 0, BUILD SUCCESSFUL)
+- Package Manifest & Artifact Hashes:
+  * Launcher:
+    Substrate.exe
+    Size: 171,520 bytes
+    SHA-256: c885938ee7473437a3f8b056158a15fc4b184fc97b2075775fbb31eeff527964
+  * Game Executable:
+    Substrate\Binaries\Win64\Substrate-Win64-Shipping.exe
+    Size: 165,788,160 bytes
+    SHA-256: 30b9331632c55986383637e6da8013ef17f2fae7a0d16be9eb40375fb03efc29
+  * Package Containers:
+    Substrate-Windows.ucas:  550.77 MB  (SHA-256: a78fe5858691f259740209cf52c42dd00f34080983cb99a0d8199745a3be20e6)
+    Substrate-Windows.pak:    10.92 MB  (SHA-256: aed2a61db3a8e8810e7df6f5cb511dd16d78c005fbc0879ec36ae78a1bc7e841)
+    Substrate-Windows.utoc:    0.37 MB  (SHA-256: 9137a34a5f87617e9fe5a3962b322da54d5bcecbfeff4f535be48cb7ffc013cf)
+    global.ucas:               3.18 MB  (SHA-256: 41c09ef84f519d25712e0ca2ef834f686ffb0416b2361fc8a38520e54d8ec688)
+    global.utoc:               0.00 MB  (SHA-256: 47ce446b0da7b2df8246e7f25925e01b34a66a1a89c72e2938cf3f5db997b6a4)
+- Staged Houdini Artifacts: 0 files (completely eliminated).
+
+================================================================================
+5. TEST HARNESS UPGRADE & VALIDATION EVIDENCE
+================================================================================
+- Upgraded Tool: _tools/smoke_test_package.py & _tools/test_houdini_fixed_startup.py
+  * Now explicitly inspects Win32 window classes and titles.
+  * Checks for modal dialog class "#32770" and title "Message" / "Error".
+  * Reads dialog text via WM_GETTEXT.
+  * Verifies presence of main "UnrealWindow".
+  * Captures window buffer to verify rendered content.
+
+- Test Results Summary:
+  -----------------------------------------------------------------------------
+  Test Target                             Modal Error Dialog   UnrealWindow   Result
+  -----------------------------------------------------------------------------
+  Negative Control (Windows_Acceptance)   PRESENT (#32770)     PRESENT        CONFIRMED FAIL
+  Fixed Candidate (Windows_HoudiniFixed)  NONE                 PRESENT        PASS (STARTUP)
+  -----------------------------------------------------------------------------
+
+================================================================================
+6. ACTIONABLE HANDOFF FOR USER PLAYTESTING
+================================================================================
+The fresh Shipping package is ready for direct interactive player acceptance testing.
+
+To run the game:
+  Executable Path:
+  D:\Projects\Substrate\Packaged\Windows_HoudiniFixed_20261017_131500\Substrate.exe
+
+Player Acceptance Checkitems:
+1. Double-click Substrate.exe.
+2. Confirm game starts without any "Message" or "HoudiniEngine" error dialog.
+3. Confirm 3D scene renders with normal atmospheric lighting and materials.
+4. Walk the player character forward into Sector C.
+5. Descend the stairs and proceed across the catwalk / landing.
+6. Interact with the terminal / airlock.
+7. Press Escape to verify in-game menu and quit cleanly to desktop.
+================================================================================

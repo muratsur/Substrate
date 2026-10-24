@@ -1,0 +1,138 @@
+SUBSTRATE - TWO USER-REPORTED GAMEPLAY BLOCKERS
+Date: 2026-10-19
+Workspace: D:\Projects\Substrate
+
+OBJECTIVE
+Reproduce and fix the user's actual falls near the start and immediately after
+crossing the bridge and turning right. Prior centerline test passes do not cover
+these movements. Keep upgrades deferred and preserve the working bridge.
+
+LATEST USER RETEST - 2026-10-19
+After receiving Windows_UserFallsFixed_20261019_115645, the user reported:
+"after passed bridge then i fell". New aftermath image:
+C:\Users\Murat\AppData\Local\Temp\codex-clipboard-ca8f8d72-038b-40e5-ac6d-bcf9a4c0104c.png
+The post-bridge scenario remains USER-REPORTED FAIL. Exact tested executable
+is unconfirmed: a process inspection after the report found no running Substrate
+process. Do not assume either an old build or the latest build from this image.
+The spawn fix has no new user acceptance result in this retest.
+
+Before another repair, establish the exact build and reproduce the transition
+from the last safe step to the fall. Match the actual exit side and facing
+direction. Reassess prior assumptions about the edge, debris and seam instead
+of adding more rails or enlarging rescue volumes without evidence.
+Record continuous position/floor-support and rescue events in diagnostic runs.
+An endpoint above water can conceal a fall followed by instant rescue; test
+unexpected teleports and minimum height throughout, not only final position.
+The previous test started halfway across the bridge and reset player position
+between cases; also test the complete connected approach/exit route normally.
+Do not claim this is repaired based on the previous PIE summary.
+
+USER EVIDENCE (PRIMARY ACCEPTANCE FAILURES)
+A. Screenshot 2026-10-19 102513.png:
+   User reports: immediately after starting to walk, red light covers the screen,
+   then the player falls underground. Screenshot shows the aftermath, not the
+   red-screen event. Do not label the red effect's cause without investigation.
+B. Screenshot 2026-10-19 102558.png and 102614.png:
+   User reports: crosses the bridge, turns right, then falls into the water.
+   Screenshots show water-level views beside concrete ledges and metal stairs.
+   Do not assume a successful straight bridge crossing covers its exit turn.
+
+Original images:
+C:\Users\Murat\Pictures\Screenshots\Screenshot 2026-10-19 102513.png
+C:\Users\Murat\Pictures\Screenshots\Screenshot 2026-10-19 102558.png
+C:\Users\Murat\Pictures\Screenshots\Screenshot 2026-10-19 102614.png
+
+1. IDENTIFY AND PRESERVE THE FAILED STATE
+Record exact executable path, content hashes, map, save/checkpoint state and
+source revision. The last recommended candidate was
+Packaged/Windows_RouteValidated_20261018_233055/Substrate.exe, but screenshots
+alone do not identify the tested build. Confirm before assigning build identity.
+Keep Windows_StoneCrossingFixed_20261018_114140 unchanged. Preserve user saves,
+current work and backups. Create a unique evidence folder for these two bugs.
+Mark these scenarios USER-REPORTED FAIL; do not replace that with an old PASS.
+
+2. REPRODUCE A: START -> FIRST MOVEMENT -> RED SCREEN -> FALL
+Launch the identified package and repeat normal starting movement. Record which
+direction and whether the run starts fresh or resumes a checkpoint. Capture the
+sequence from before movement until the fall/recovery, if supported.
+Locate the actual last safe floor and first failing position; do not substitute
+a terminal-approach waypoint test for the user's start movement.
+Inspect in a matching development/PIE session as needed:
+- Player spawn/resume transform, capsule placement and initial floor contact.
+- Floor component collision geometry, enabled mode and Pawn response at runtime.
+- Streaming readiness and changes to visibility/collision after BeginPlay.
+- Overlaps, damage/death, post-process/red overlays, shift-end and rescue logic.
+- Any teleports or respawns immediately preceding the fall and their destination.
+Log event order and distinguish falling through a surface from being teleported
+below it. Check whether the red effect precedes or follows loss of floor support.
+Compare with a nearby working surface or valid spawn to isolate the cause.
+
+3. REPRODUCE B: BRIDGE -> EXIT LANDING -> RIGHT TURN -> WATER
+Match the bridge and approach direction to the images. Right is relative to the
+player's facing direction; record yaw and exact exit side before selecting actors.
+Walk from the approach, across the bridge, down the exit steps, turn right onto
+the adjacent intended path, and continue. Record last supported position and
+the first unsupported position, including floor actor/component when available.
+Inspect landing-to-slab joints, right-hand slabs, seam widths, collision shape,
+Pawn responses, runtime overrides and the actual visible walking edge.
+Determine whether the player falls THROUGH visible flooring or OFF an exposed
+edge/gap. These require different repairs. Do not assume either from aftermath
+screenshots. Check the full turning area, not only X/Y centerline samples.
+
+4. APPLY ONLY CAUSE-SUPPORTED REPAIRS
+Back up exact affected assets before editing. Confirm component identity and
+owning saved map; do not accidentally repair only a PIE instance.
+For a genuine floor collision defect, correct that component/shape and verify
+tool success plus read-back. For a missing route connection, recover intended
+geometry from reliable history. For a spawn/trigger defect, repair that logic.
+If an intended route has an exposed unsafe edge, restore appropriate intended
+edge protection without blocking the route, after confirming design and geometry.
+Do not blanket-enable collision on every cube, move blockers underground, remove
+rails, cover water with invisible floors or globally alter capsule/step height.
+Do not merely suppress the red effect or rescue-teleport the player to conceal
+the fall. Investigate recovery separately if it leaves the player stuck.
+Record exact before/after properties and asset paths. Save and reload to verify
+persistence. Keep diagnostic movement hooks out of normal Shipping gameplay.
+
+5. VERIFY THE EXACT FAILURES AND REGRESSIONS
+In PIE/development, verify each repaired scenario before packaging. Then build
+into a new uniquely named candidate directory and verify using normal controls:
+A1: Fresh start, pause, then first forward movement without falling underground.
+A2: Ordinary left/right/diagonal starting movement; safe floor contact maintained.
+A3: Resume/checkpoint path if relevant to the reproduced failure.
+B1: Cross the pictured bridge and immediately turn right onto the intended path.
+B2: Repeat at walking/running speed where supported and with angled approaches.
+B3: Stand and turn on the landing; cross accessible seams and return the same way.
+R1: Original bridge/slabs and repaired east stairs remain usable both directions.
+R2: Legitimate water falls recover according to the game's intended behavior.
+Repeat the original two repro sequences at least three times to catch timing or
+edge-sensitive failures. Record build and observations for each run.
+
+Packaged PASS requires observed gameplay in that package. Editor CaptureViewport,
+supplied camera coordinates, color counts, successful cooking, blind keypresses,
+injected fixture results or repositioned player/gates cannot establish that PASS.
+If interactive observation is unavailable, mark packaged checks NOT VERIFIED and
+provide the exact new executable plus a short manual checklist for these two
+scenarios. Complete independent diagnosis/repair work without inventing results.
+
+6. DELIVERABLE
+Write LOCAL_AI_START_AND_BRIDGE_TURN_RESULTS.txt containing:
+- Confirmed failed build identity (or explicitly unknown).
+- Separate root cause and repair for A and B, with reproducible movement steps.
+- Last safe/first failing locations and supporting event/collision evidence.
+- Changed assets, backups and verified saved properties.
+- PIE/development and packaged results in separate tables, with evidence paths.
+- Exact new executable, remaining failures and unverified scenarios.
+Rewrite current status clearly; do not append new PASS claims beneath stale or
+contradictory conclusions. Preserve old logs as historical evidence.
+
+LOCAL-AI PROMPT
+Read D:\Projects\Substrate\LOCAL_AI_FIX_START_AND_BRIDGE_TURN_FALLS.txt and
+execute it. The user has now reported two real gameplay failures: a red screen
+then underground fall immediately after starting movement, and a water fall
+after crossing the bridge and turning right. Reproduce those exact sequences,
+identify the causes, apply minimal persistent repairs and verify a separate
+candidate with actual gameplay. Preserve the working bridge and old baseline.
+
+STATUS: Repair handoff only. No game assets changed or fixes verified by creating
+this document. Exact causes and tested build identity remain to be established.

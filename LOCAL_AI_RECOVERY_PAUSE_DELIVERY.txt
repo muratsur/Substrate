@@ -1,0 +1,205 @@
+===============================================================================
+SUBSTRATE - WATER RECOVERY, PAUSE MENU & PROGRESSION DELIVERY REPORT
+Date: 2026-10-23
+Project: D:\Projects\Substrate\Substrate.uproject
+Candidate Build: Packaged\Windows_RecoveryPause_20261023_002708 (Preserved)
+Updated Candidate Build: Packaged\Windows_RecoveryPause_20261023_010022
+Baseline Preserved: Packaged\Windows_ConfirmedFloorFix_20261022_153936 (Untouched)
+Previous Polish:    Packaged\Windows_WalkwayVisPolish_20261022_233545 (Untouched)
+===============================================================================
+
+1. EXECUTIVE SUMMARY & BASELINE PRESERVATION
+Status: PARTIALLY VERIFIED
+NOTE ON ACCEPTANCE CLAIMS: The prior claim of "ALL ACCEPTANCE CHECKS PASS" was
+not supported by standalone packaged execution tests. The candidate build
+Windows_RecoveryPause_20261023_002708 is preserved intact.
+Outstanding items currently marked UNVERIFIED pending packaged runtime demonstration:
+- Packaged water recovery (3x successful drops per accessible location): UNVERIFIED
+- Pause gameplay simulation freeze (proving position/simulation frozen): UNVERIFIED
+- Restart button double-click confirmation & cancellation: UNVERIFIED
+- Quit button double-click confirmation & standalone clean exit: UNVERIFIED
+- Repeated pause/resume (3x toggle cycle): UNVERIFIED
+- Terminal input while paused: UNVERIFIED
+- Full progression under normal packaged controls (E/Q): UNVERIFIED
+
+Active packaged acceptance testing is underway on the candidate.
+
+- User-Confirmed Floor Repair Preserved:
+  StaticMeshActor_267, 268, 269, 295, 296, 297 remain BlockAll / QueryAndPhysics.
+  Verified directly on disk map via rp_verify_saved_state.py.
+- West-Bank Extension Preserved:
+  Actors 3803, 3804, 3805 remain intact and valid in persistent level.
+- PointLight_25 Preserved:
+  Intensity=35, AttenuationRadius=380, SourceRadius=5, LightColor=(0.302, 0.478, 0.678).
+  No new cosmetic lighting added.
+- Baseline Packages Untouched:
+  Packaged\Windows_ConfirmedFloorFix_20261022_153936 and
+  Packaged\Windows_WalkwayVisPolish_20261022_233545 remain unmodified.
+- New Candidate Created:
+  Packaged\Windows_RecoveryPause_20261023_002708
+
+-------------------------------------------------------------------------------
+2. PHASE 1: WATER RECOVERY & VOID FALLBACK FIX
+-------------------------------------------------------------------------------
+Defect Analysis:
+- In the original level geometry, BP_CanalRescue_C_1 covered Y=5000..8800.
+- South of Y=5000 (Y=0..5000), including the stair basin at X=1374, Y=4518,
+  the canal bed sits at Z ~ 174..232 with NO rescue volume. Falling off the
+  accessible walkway or stairs stranded the player on actor137/actor231 indefinitely.
+- Additionally, BP_CanalRescue EventGraph called SetActorLocation without zeroing
+  movement velocity, allowing residual falling momentum after rescue teleport.
+
+Implementation:
+1. BP_CanalRescue_C_2 (South Basin Trigger):
+   Placed in L_SectorC covering X=[-2315..2485], Y=[0..5050], Z=[-8..248].
+   Center=(85, 2525, 120), Scale=(60, 63.125, 2.5).
+   Top of volume is Z=248, strictly < 250 and >100 units below walkable floor
+   (Slabs 267..269 at Z=384.7, Dock at Z=358.5).
+2. BP_CanalRescue_C_3 (Bounded Void Fallback Trigger):
+   Placed in L_SectorC covering X=[-20000..20000], Y=[-15000..25000], Z=[-800..-400].
+   Center=(0, 5000, -600), Scale=(500, 500, 5.0).
+   Catches any off-map void falls and prevents endless falling or soft-locks.
+3. Velocity Clearing in BP_CanalRescue:
+   Updated EventGraph DSL to call StopMovementImmediately on the player's
+   CharacterMovement component before teleporting to (0, 1400, 400).
+
+Verification Evidence (PIE Simulation Only - Saved/Verification/water_recovery_verification.json; Standalone Packaged Drops: UNVERIFIED):
+- Drop 1 (Stair Basin X=1374, Y=4518, Z=200):
+  Rescued in 0.527s -> Pos=(0.0, 1400.0, 358.5), MOVE_Walking, Velocity mag=0.0 [PASS]
+- Drop 2 (South Canal Bed X=1880, Y=4500, Z=200):
+  Rescued in 0.532s -> Pos=(0.0, 1400.0, 358.5), MOVE_Walking, Velocity mag=0.0 [PASS]
+- Drop 3 (Mid Canal X=85, Y=6900, Z=120):
+  Rescued in 0.528s -> Pos=(0.0, 1400.0, 358.5), MOVE_Walking, Velocity mag=0.0 [PASS]
+- Drop 4 (Void Fall X=-4000, Y=7000, Z=-500):
+  Rescued in 0.548s -> Pos=(0.0, 1400.0, 358.5), MOVE_Walking, Velocity mag=0.0 [PASS]
+- Stair Physical Traversal Retest (actual_stairs_traversal_log.json):
+  Descent (CP1->CP4): [PASS]
+  Ascent (CP4->CP1):  [PASS]
+  Angled Descent:     [PASS]
+  Angled Ascent:      [PASS]
+  Normal traversal and jumping on stairs/walkways never intersect rescue trigger.
+
+-------------------------------------------------------------------------------
+3. PHASE 2: IN-GAME PAUSE MENU (WBP_PAUSE)
+-------------------------------------------------------------------------------
+Implementation:
+1. Widget Blueprint (/Game/Substrate/UI/WBP_Pause):
+   - Dark semi-transparent full-screen backdrop (brushColor R=0.03, G=0.04, B=0.05, A=0.88).
+   - Centered menu box:
+     * Header: "SYSTEM PAUSED" (26pt monospaced)
+     * Subtitle: "SUBSTRATE FACILITY // SECTOR C" (13pt)
+     * Resume Button (BtnResume): " [ RESUME SHIFT ] "
+     * Restart Button (BtnRestart): " [ RESTART SHIFT ] "
+     * Quit Button (BtnQuit): " [ QUIT TO DESKTOP ] "
+     * Confirmation Text (TxtConfirm): Dynamic status display for safety confirmations
+     * Footer: "PRESS ESC TO RESUME" (12pt)
+   - Safety Confirmation:
+     * Clicking Restart displays "CONFIRM: CLICK RESTART AGAIN TO RESET". Only a second
+       click unpauses and reloads L_SectorC via OpenLevel(byName).
+     * Clicking Quit displays "CONFIRM: CLICK QUIT AGAIN TO EXIT". Only a second click
+       calls QuitGame.
+2. Player Controller Integration (/Game/FirstPerson/Blueprints/BP_FirstPersonPlayerController):
+   - Added PauseWidget member variable (/Script/UMG.UserWidget).
+   - Added TogglePause function:
+     * If paused: unpauses via SetGamePaused(false), removes PauseWidget from parent,
+       restores SetInputModeGameOnly, hides mouse cursor.
+     * If unpaused: pauses via SetGamePaused(true), creates or retrieves PauseWidget,
+       adds to player screen, applies SetInputModeGameAndUI with focus on PauseWidget,
+       shows mouse cursor.
+   - Bound Escape key event with bExecuteWhenPaused=True, ensuring Escape fires
+     reliably to resume gameplay even when the game simulation is frozen.
+
+-------------------------------------------------------------------------------
+4. PHASE 3: PROGRESSION LOOP & FIXTURE RESOLUTION
+-------------------------------------------------------------------------------
+Fixture Audit:
+- Survey confirmed 9 BP_Fixture actors exist in L_SectorC:
+  * Row 0: C-01 INLET VALVE       loc=(1469, 4342, 430)   [Sector C]
+  * Row 1: C-02 FILTRATION SEAL   loc=(3060, 6170, 430)   [Sector C]
+  * Row 2: C-03 PRESSURE GAUGE    loc=(-2480, 7212, 420)  [Sector C]
+  * Row 3: C-04 OVERFLOW LAMP     loc=(-1516, 8349, 420)  [Sector C]
+  * Row 4: C-05 OUTFALL GRATE     loc=(-2543, 10200, 430) [Sector C]
+  * Row 5: B-01 COOLANT PUMP      loc=(8560, 2500, 460)   [Sector B]
+  * Row 6: B-02 HEAT EXCHANGER    loc=(8560, 3250, 460)   [Sector B]
+  * Row 7: B-03 CONDENSER COIL    loc=(8560, 4100, 460)   [Sector B]
+  * Row 8: Fix_D06 (C-06 RELIEF VALVE) loc=(-660, -6230, 455) [Sector D]
+- Resolution:
+  RoundManager property RequiredRowMax is explicitly set to 7.
+  The shift progression rule checks InRowRange(fixture, 0, RequiredRowMax), which
+  requires Rows 0..7 (exactly 8 fixtures). Row 8 (Fix_D06) is the post-round /
+  secret Sector D fixture and is intentionally excluded from the Shift 001..007
+  active checklist requirement.
+
+Progression Test Evidence (Editor/PIE Test - Saved/Verification/progression_verification.json; Normal-Input Packaged Playthrough: UNVERIFIED):
+- Initial Round: 1, ShiftOpen: True, RequiredRowMax: 7, TerminalRemaining: 8.
+- F Key Interaction: Verified terminal raises and stows properly.
+- Fixture Logging: Rows 0..7 logged according to anomaly state (LogResult=1/2).
+- Shift Close Trigger: Player overlap on RoundManager airlock collision box.
+- Result:
+  * CurrentRound advanced from 1 to 2.
+  * AllCorrect: True
+  * AuditMissedAnomaly: False
+  * AuditFalseAlarm: False
+  * Shift successfully cycled and re-opened for Round 2. [PASS]
+
+-------------------------------------------------------------------------------
+5. PHASE 4: PACKAGING & STANDALONE RUNTIME VERIFICATION
+-------------------------------------------------------------------------------
+Packaging Execution:
+- Script: _tools/package_recovery_pause.py
+- Command: UAT BuildCookRun -clientconfig=Shipping -platform=Win64 -package -archive
+- Exit Code: 0 (Completed in 2.94 minutes)
+- Cook Warnings / Errors: 0 cook warnings, 0 cook errors.
+  (Reporting distinction: cooker log reports zero warnings for Substrate assets;
+   system SDK environment warnings are omitted).
+- Provenance File: Saved/RecoveryPause/provenance_Windows_RecoveryPause_20261023_002708.json
+
+Packaged Artifacts & SHA-256 Hashes:
+- Substrate.exe:
+  Size: 171,520 bytes
+  SHA-256: c885938ee747343777153db3b196b275c6ef461addd02aba43c5d98434af6da5
+- Substrate-Win64-Shipping.exe:
+  Size: 165,788,160 bytes
+  SHA-256: 30b9331632c559867a19c05b62c1177da4a2f15f9d177e72bbab2fd201ef3b4e
+- Substrate-Windows.pak:
+  Size: 11,449,973 bytes
+  SHA-256: ebe6bcf29acd58c2dab5d7c72dcfad81696b0d6617d5b9785a2e00af22616df4
+- Substrate-Windows.ucas:
+  Size: 577,532,368 bytes
+  SHA-256: 130937e5b90a462477fd04e1a05061193ed6ebb67dccb4f6e6c549924dc03218
+- Substrate-Windows.utoc:
+  Size: 391,818 bytes
+  SHA-256: c187dc0d02dfabeab8df3b562b1bd113689effe5abbe66ef454e0cecd7b24154
+- global.ucas:
+  Size: 3,332,032 bytes
+  SHA-256: 41c09ef84f519d25a235dbfe0d954256bc1261be80855ffcb62b5b449ead51ac
+- global.utoc:
+  Size: 806 bytes
+  SHA-256: 47ce446b0da7b2dfe1a7601d72ae916726dd4c1a50f856230d0ba0aa55d0dbba
+
+Standalone Runtime Test Results (Saved/Verification/recovery_pause_20261023_002708/packaged_verification_results.json):
+- Step 1: Launch & Spawn View Rendering
+  Captured: 01_spawn_view.png (55,132 distinct colors rendered) [PASS]
+- Step 2: Mouse Look
+  Captured: 02_look_right.png (Camera rotated 90 deg right, 55,637 colors) [PASS]
+- Step 3: Forward Movement (W key)
+  Captured: 03_walk_forward.png (Player moved along spawn dock corridor) [PASS]
+- Step 4: Jump (Space key)
+  Captured: 04_jump.png (Vertical capsule elevation verified) [PASS]
+- Step 5: Terminal Interaction (F key)
+  Captured: 05_terminal_raised.png (Checklist HUD raised in front of player) [PASS]
+- Step 6: In-Game Pause Menu & Simulation Freeze
+  Previous test captured window without proving simulation freeze [UNVERIFIED].
+- Step 7: Resume from Pause Menu & Repeated Toggle
+  Repeated 3x pause/resume cycles and input state restoration [UNVERIFIED].
+- Step 8: Restart Button Safety Confirmation & Cancellation
+  Double-click reset prompt and cancellation on resume [UNVERIFIED].
+- Step 9: Quit Button Safety Confirmation & Clean Exit
+  Double-click quit prompt and autonomous exit without WM_CLOSE [UNVERIFIED].
+- Step 10: Terminal Input While Paused
+  Verified that F key does not raise or mutate terminal while paused [UNVERIFIED].
+- Step 11: Packaged Water Recovery
+  3x drops across all 3 accessible locations in packaged build [UNVERIFIED].
+
+OVERALL VERIFICATION STATUS: PARTIALLY VERIFIED (Missing acceptance checks undergoing packaged testing).
+===============================================================================
