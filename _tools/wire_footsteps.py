@@ -34,9 +34,11 @@ CHECK_FOOTSTEP = f'''(fn CheckFootstep ()
 '''
 # write_graph_dsl REPLACES an event's body (verified 2026-10-24, contrary to ANOMALY_SYSTEM.md), so restate the existing
 # BeginPlay statements and add the timer at the end.
+# EnableInput needs named pins: the positional form wired the controller into Target, so the manager got no keys.
 BEGINPLAY_APPEND = '''(event EventBeginPlay
+  (CallFunction|LoadShiftState)
   (CallFunction|StartShift)
-  (Input|EnableInput (Game|GetPlayerController 0))
+  (Input|EnableInput :self self :PlayerController (Game|GetPlayerController 0))
   (Utilities|Time|SetTimerbyFunctionName :Object self :FunctionName "CheckFootstep" :Time 0.5 :bLooping true))
 '''
 if __name__ == '__main__':
