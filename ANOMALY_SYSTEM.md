@@ -47,6 +47,19 @@ change, as the design demands (C2).
 | 1 | Light | `LightComponent.SetIntensity(LightIntensity)` — caches the old intensity first | restore intensity |
 | 2 | Growth | `BP_GrowthNode.ForceAdvance()` (mesh + scale ladder, clears the once-per-round latch) | `RevertGrowth()`; normally `RevertRule = 1`, so it stays |
 | 3 | Displacement | move the actor by `Offset` (transform cached first) | restore the transform |
+| 4 | Addition | unhide the target and enable its collision | hide it again |
+| 5 | Shadow | `SetCastHiddenShadow` on a hidden mesh: a shadow with no visible caster (needs a shadow-casting light nearby) | turn it off |
+| 6 | Geometry | hide the target, show `SecondaryActor` (a shifted copy) | swap back |
+| 7 | Audio | pause the target's `AudioComponent` (the Sector C room tone) | unpause |
+| 8 | Checklist corruption | marks the socket applied; `BP_RoundManager.AddRowIfMatch` shows the socket's `Note` in place of the target fixture's row | automatic: the row shows the real ID once the socket is reverted |
+| 9 | Repetition | `BP_Airlock.ApplyLoopBack`: the airlock returns you where you came from | turn it off |
+| 10–13 | Overtime (round 9+): doppelgänger, hyper-growth (two growth stages), shadow stalker, schizo ledger (handled like 8) | as above per type | as above |
+
+**Status 2026-10-25:** all 14 types have a socket with a target in `L_SectorC`. Verified
+in PIE: type 8 renames row 3 to "C-03 DO NOT INSPECT" and type 13 renames row 7 to
+"F-01 CRYSTAL VEIN". Type 7 is only noticeable if the room tone plays; it now uses the
+generated `AMB_RoomTone_Hum`. The older `AMB_*_Loop` files are all one identical
+water/wading recording.
 
 ## Round bands (what the director rolls)
 
@@ -95,21 +108,39 @@ Implemented as `GetBudgetMin` / `GetBudgetMax` / `PickType` on the director
 4. **`SeverityWeight` is not used yet.** The weighting in 5.6.1 multiplies type
    weight by severity; only type weighting exists so far. `Severity` is on the
    socket, ready for it.
-5. **Nothing is persisted.** Round state, applied anomalies and growth stages are
-   still in-memory (T1.6).
+5. **Partly persisted (2026-10-24).** `SaveShiftState`/`LoadShiftState` keep the round,
+   codex discoveries, Sector D completion and Overtime unlock/best in slot
+   `Substrate_0`. Applied anomalies and growth stages are still in memory only;
+   they re-roll at each shift start.
 
-Not implemented yet: Geometry, Shadow, Audio, Addition, Repetition,
-ChecklistCorruption anomaly types, the "harder rule", and cooldown-aware
-per-target exclusion beyond `CooldownRounds`.
+Not implemented yet: the "harder rule" and cooldown-aware per-target exclusion
+beyond `CooldownRounds`. Round bands in the table above are the original plan.
+The live `PickType` draws codes 0–2 in round 3, 0–6 (rare 7) in rounds 4–5,
+0–9 in rounds 6–8, and adds 10–13 from round 9.
 
 See also `TERMINAL_SYSTEM.md` (T1.4): the checklist the player carries, and the
 second user of the same DSL.
 
 ## Tooling notes (important for the next agent)
 
+* **Corrections found 2026-10-24/25. Each one broke the game once:**
+  - Writing an **event** with `write_graph_dsl` **replaces that event's body**
+    (it does not append). Restate the whole event, as `_tools/wire_footsteps.py` does.
+  - Positional args to `CallFunction|X` feed the hidden `self` pin first, so the
+    first real argument is silently dropped. Use named pins
+    (`:Header "..."`). Same for `Input|EnableInput`: positional wires the
+    controller into *Target*, which means the actor gets no keys. Write
+    `(Input|EnableInput :self self :PlayerController (Game|GetPlayerController 0))`.
+  - `Math|Rotator|MakeRotator` positional order is **Roll, Pitch, Yaw**. A
+    two-number call meant as (pitch, yaw) sets pitch, which tips the pawn over.
+  - A read-back is **not** always writable. `BP_AnomalySocket.Apply/Revert`
+    read targets as `(Camera|GetTarget)` and use `_` for empty branches, and the
+    writer rejects both. Always diff the read-back after a write.
+  - The DSL cannot create key events; use `create_node` with
+    `Input|KeyboardEvents|F` plus `connect_pins` (`_tools/add_rm_f_key.py`).
 * `write_graph_dsl` re-writing a **function** graph replaces it (re-verified
   2026-10-13 with a two-node scratch function: still two nodes after a second
-  write). It **cannot** replace an event, only add to it, and it refuses
+  write). It refuses
   statements after a node that ends the flow ("Unreachable code after
   branch/return" - put your statements before the `IsValid`/cast block). Graphs
   written before that date still carry dead duplicates from the earlier append

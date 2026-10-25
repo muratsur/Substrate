@@ -92,11 +92,19 @@ if __name__ == '__main__':
     cache = Path(__file__).with_name('preflight_rubble_cache.json')
     rubble = set(json.loads(cache.read_text())) if cache.exists() and '--full' not in sys.argv else set()
     todo = [n for n in names if n not in rubble]
+    def collect(batch):
+        try:
+            res = M.call('call_tool', {'toolset_name': 'editor_toolset.toolsets.programmatic.ProgrammaticToolset', 'tool_name': 'execute_tool_script',
+                                       'arguments': {'script': COLLECT.replace('%NAMES%', repr(batch))}})
+            return json.loads(json.loads(res)['returnValue'])['rows']
+        except TimeoutError:   # editor slower than ue_mcp's 120 s (e.g. PIE running): halve the batch and retry
+            if len(batch) <= 10: raise
+            print(f'  batch of {len(batch)} timed out, retrying in halves', flush=True)
+            h = len(batch) // 2
+            return collect(batch[:h]) + collect(batch[h:])
     rows = []
     for i in range(0, len(todo), CHUNK):
-        res = M.call('call_tool', {'toolset_name': 'editor_toolset.toolsets.programmatic.ProgrammaticToolset', 'tool_name': 'execute_tool_script',
-                                   'arguments': {'script': COLLECT.replace('%NAMES%', repr(todo[i:i + CHUNK]))}})
-        rows += json.loads(json.loads(res)['returnValue'])['rows']
+        rows += collect(todo[i:i + CHUNK])
     cache.write_text(json.dumps(sorted(rubble | {r['name'] for r in rows if r['mesh'].startswith('SM_detail')})))
     found = problems(rows)
     print(f'preflight_collision: {len(rows)} actors checked ({len(names) - len(todo)} cached rubble skipped), {len(found)} problem(s)')
