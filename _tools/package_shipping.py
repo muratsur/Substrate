@@ -24,15 +24,10 @@ CANDIDATE_ID = f"Windows_{NAME}_{TIMESTAMP}"
 ARCHIVE_DIR = Path(rf"D:\Projects\Substrate\Packaged\{CANDIDATE_ID}")
 LOG_FILE = Path(rf"D:\Projects\Substrate\Saved\Logs\package_build_{NAME.lower()}_{TIMESTAMP}.log")
 EVIDENCE_DIR = Path(rf"D:\Projects\Substrate\_evidence\builds")
-INI_FILE = Path(r"D:\Projects\Substrate\Config\DefaultEditorPerProjectUserSettings.ini")
 
 EVIDENCE_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 ARCHIVE_DIR.mkdir(parents=True, exist_ok=True)
-
-# Temporarily disable bAutoStartServer in ini during cooking so cooker commandlet doesn't conflict on port 8000
-ini_original = INI_FILE.read_text(encoding="utf-8") if INI_FILE.exists() else ""
-ini_modified = ini_original.replace("bAutoStartServer=True", "bAutoStartServer=False")
 
 cmd = [
     UAT,
@@ -50,7 +45,9 @@ cmd = [
     "-archive",
     f"-archivedirectory={ARCHIVE_DIR}",
     "-unattended",
-    "-utf8output"
+    "-utf8output",
+    # the open editor holds the MCP server on port 8000; give the cook commandlet its own port instead of editing the ini
+    "-AdditionalCookerOptions=-ModelContextProtocolPort=8099",
 ]
 
 print("=================================================================")
@@ -66,43 +63,34 @@ print(f"Log File:     {LOG_FILE}")
 warnings_list = []
 errors_list = []
 
-try:
-    if ini_modified != ini_original:
-        print("Temporarily setting bAutoStartServer=False in ini for cook...")
-        INI_FILE.write_text(ini_modified, encoding="utf-8")
-
-    with open(LOG_FILE, "w", encoding="utf-8") as f:
-        f.write(f"--- BUILD STARTED: {start_time_str} ---\n")
-        f.write(f"Command: {' '.join(cmd)}\n\n")
+with open(LOG_FILE, "w", encoding="utf-8") as f:
+    f.write(f"--- BUILD STARTED: {start_time_str} ---\n")
+    f.write(f"Command: {' '.join(cmd)}\n\n")
+    
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+    
+    last_print = time.time()
+    for line in p.stdout:
+        f.write(line)
+        f.flush()
+        line_clean = line.strip()
         
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
-        
-        last_print = time.time()
-        for line in p.stdout:
-            f.write(line)
-            f.flush()
-            line_clean = line.strip()
+        if "warning:" in line_clean.lower() or "warning " in line_clean.lower():
+            warnings_list.append(line_clean)
+        if "error:" in line_clean.lower() or "error " in line_clean.lower() or "fatal" in line_clean.lower():
+            errors_list.append(line_clean)
             
-            if "warning:" in line_clean.lower() or "warning " in line_clean.lower():
-                warnings_list.append(line_clean)
-            if "error:" in line_clean.lower() or "error " in line_clean.lower() or "fatal" in line_clean.lower():
-                errors_list.append(line_clean)
-                
-            now = time.time()
-            if any(k in line_clean for k in [
-                "Running AutomationTool", "BUILD SUCCESSFUL", "Cooking", "Cooked packages",
-                "Copying NonUFSFiles", "Packaging", "ARCHIVE", "AutomationTool exiting",
-                "BUILD FAILED", "Fatal Error", "Success"
-            ]) or (now - last_print > 15):
-                print(f"[{time.strftime('%H:%M:%S')}] {line_clean[:120]}", flush=True)
-                last_print = now
+        now = time.time()
+        if any(k in line_clean for k in [
+            "Running AutomationTool", "BUILD SUCCESSFUL", "Cooking", "Cooked packages",
+            "Copying NonUFSFiles", "Packaging", "ARCHIVE", "AutomationTool exiting",
+            "BUILD FAILED", "Fatal Error", "Success"
+        ]) or (now - last_print > 15):
+            print(f"[{time.strftime('%H:%M:%S')}] {line_clean[:120]}", flush=True)
+            last_print = now
 
-        p.wait()
+    p.wait()
 
-finally:
-    if ini_original:
-        print("Restoring original ini (bAutoStartServer=True)...")
-        INI_FILE.write_text(ini_original, encoding="utf-8")
 
 end_time_str = time.strftime('%Y-%m-%d %H:%M:%S')
 elapsed_sec = time.time() - start_ts
