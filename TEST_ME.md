@@ -20,6 +20,11 @@ since round 5. Press E or Q on it. Either works. That press ends the demo.
 What I need from you is not whether it runs. It's whether arriving at C-06 lands
 as a payoff, or as an anticlimax after a long walk.
 
+> **ANSWERED — 2026-10-24: keep it.** Murat walked Sector D in Play-in-Editor
+> (round forced to 8 on the running game) and reported that reaching C-06 *works
+> as a payoff*. Still unplayed end-to-end: rounds 1-8 at natural pace, so the
+> pacing on the way to the ending is untested.
+
 ## What changed
 
 Sector D was built on top of existing sewer geometry — including a full-height
