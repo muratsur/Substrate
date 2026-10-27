@@ -47,6 +47,13 @@ without one widget per row.
 terminal and logging it does not move the count — that is the phantom row from
 `TEST_ME.md`, and it is what I used to prove the required-rows rule.
 
+## Hints (2026-10-26)
+
+Shipping builds strip `PrintString`, so player hints go through `BP_RoundManager.ShowHint(Text)` instead. It puts
+the text in the footer's last-action slot, raises the terminal, and clears the hint after 4 s (`ClearHint`). It is used
+for: airlock locked, nothing in range, west gate open, and the F tip on shift 1. Sector D and the demo end raise the
+terminal with their own text. Debug prints are unchanged. Built by `_tools/hints_on_terminal.py`.
+
 ## Tuning
 
 | Property | On | Meaning |
