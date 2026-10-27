@@ -16,7 +16,9 @@ STRUCTURAL = ('SM_concrete', 'SM_stair', 'SM_floor', 'SM_platform', 'SM_path', '
 REVIEWED_HIDDEN = {'StaticMeshActor_229': 275,   # CanalDoorway_SafetyFloor, floor modules top 270
                    'StaticMeshActor_3689': 290,  # SectorB_FloorSafety, under SM_path
                    'StaticMeshActor_3690': 290,  # SectorD_FloorSafety, inside alien-organism ground
-                   'StaticMeshActor_3797': 595}  # Bridge_Safety_Barrier_East, thin invisible railing
+                   'StaticMeshActor_3797': 595,  # Bridge_Safety_Barrier_East, thin invisible railing
+                   'StaticMeshActor_3815': 842,  # ContamBlockW: collision off at runtime until closed (build_contamination_closures.py)
+                   'StaticMeshActor_3816': 842}  # ContamBlockE: same
 
 COLLECT = """
 import json

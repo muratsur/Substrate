@@ -78,6 +78,15 @@ one Absence, even if the roll produced nothing.
 Implemented as `GetBudgetMin` / `GetBudgetMax` / `PickType` on the director
 (small select-chains). Tune them there.
 
+## Contamination (round 8+ and Overtime)
+
+`BP_RoundManager.Contamination` goes up by 1 when an audit fails with a missed anomaly, and down by 1 (min 0) on a clean
+close. At 2, the west-canal bridge W (x -3253) is walled off the first time you step off it. At 4, bridge E (x -756)
+is walled off as soon as you're not on it. Every `StartShift` reopens both (`ReopenCrossings`; `CheckCrossings`
+polls every 0.2 s). The walls are `ContamBlockW` / `ContamBlockE`. The ways back were checked with `walk_graph.py --walls`
+and capsule-width traces: with W closed, bridge E; with both closed, the walkway at the canal's east end. The counter
+isn't saved. Built by `_tools/build_contamination_closures.py`.
+
 ## Verified in Play-in-Editor
 
 | Check | Result |
