@@ -8,6 +8,7 @@ The top-left overlay line `Location: V(X=…, Y=…, Z=…)` is your position. W
 - **F** raises or stows the terminal.
 - **E** logs PASS.
 - **Q** logs FLAG.
+- **L** turns the flashlight on or off.
 - Close the shift at the trigger next to spawn.
 
 ## What to note
