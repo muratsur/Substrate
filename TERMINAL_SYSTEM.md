@@ -54,6 +54,14 @@ the text in the footer's last-action slot, raises the terminal, and clears the h
 for: airlock locked, nothing in range, west gate open, and the F tip on shift 1. Sector D and the demo end raise the
 terminal with their own text. Debug prints are unchanged. Built by `_tools/hints_on_terminal.py`.
 
+## Inspection camera (2026-10-27)
+
+`C` calls `BP_RoundManager.TakePhoto`: the same 4 m view test as E/Q picks a fixture, and one of 3 film shots per shift
+(`FilmLeft`, reset in `StartShift`) files it. A photographed fixture shows `[PHOTO]` and counts as reported in both
+`AddRowIfMatch` (remaining count) and `TryCloseShift` (audit), whatever its state, so a photo is a safe hedge that
+reveals nothing. Photographing the same fixture again costs no film. IDs are kept as `|ID|` in the `PhotoIDs` string.
+Built by `_tools/add_inspection_camera.py`.
+
 ## Tuning
 
 | Property | On | Meaning |

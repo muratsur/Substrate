@@ -9,6 +9,7 @@ The top-left overlay line `Location: V(X=…, Y=…, Z=…)` is your position. W
 - **E** logs PASS.
 - **Q** logs FLAG.
 - **L** turns the flashlight on or off.
+- **C** photographs the fixture you're looking at (3 per shift). A photographed fixture counts as reported at the audit.
 - Close the shift at the trigger next to spawn.
 
 ## What to note
