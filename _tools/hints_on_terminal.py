@@ -46,7 +46,7 @@ CODE = {
 ''',
     'ShowFTip': '''(fn ShowFTip ()
   (if (== (Variables|Default|GetCurrentRound) 1)
-    (CallFunction|ShowHint :Text "F: RAISE / STOW THIS TERMINAL")))
+    (CallFunction|ShowHint :Text "F: TERMINAL   L: TORCH   C: CAMERA")))
 ''',
     # rewritten whole: its read-back has '_' branches, which can't be written back
     'OpenWestGate': '''(fn OpenWestGate ()

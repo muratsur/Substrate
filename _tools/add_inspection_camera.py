@@ -34,6 +34,7 @@ def patch(g, pairs, done):
 TAKE = f'''(fn TakePhoto ()
   (if (<= (Variables|Default|GetFilmLeft) 0)
     (CallFunction|ShowHint :Text "NO FILM LEFT")
+    (Audio|PlaySound2D "/Engine/VREditor/Sounds/UI/Invalid_Action.Invalid_Action" 0.6 1.3)
     (else
       (Variables|Default|SetBestDist 400.0)
       (for a (Actor|GetAllActorsOfClass "/Game/Substrate/Core/BP_Fixture.BP_Fixture_C")
@@ -51,7 +52,8 @@ TAKE = f'''(fn TakePhoto ()
           (Variables|Default|SetPhotoIDs (Utilities|String|Append (Variables|Default|GetPhotoIDs) {PHOTO_KEY('_best')})))
         (CallFunction|ShowHint :Text (Utilities|String|Append (Utilities|String|Append "PHOTO " (Utilities|String|ToString(Name) (Class|BPFixture|GetFixtureID _best))) (Utilities|String|Append " - FILM " (Utilities|String|ToString(Integer) (Variables|Default|GetFilmLeft)))))
         (else
-          (CallFunction|ShowHint :Text "NO FIXTURE IN FRAME WITHIN 4 M"))))))
+          (CallFunction|ShowHint :Text "NO FIXTURE IN FRAME WITHIN 4 M")
+          (Audio|PlaySound2D "/Engine/VREditor/Sounds/UI/Invalid_Action.Invalid_Action" 0.6 1.3))))))
 '''
 
 if __name__ == '__main__':
