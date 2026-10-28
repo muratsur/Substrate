@@ -15,14 +15,16 @@ G = {'refPath': RM + ':EventGraph'}
 call = lambda tool, args: json.loads(M.bp(tool, args))['returnValue']
 read = lambda g: json.loads(M.bp('read_graph_dsl', {'graph': {'refPath': g}})).get('returnValue', '')
 WARM = {'r': 1.0, 'g': 0.93, 'b': 0.82, 'a': 1.0}
-LIGHTS = {  # label: properties; re-running re-applies them (tuned in PIE 2026-10-26)
-    # scene lights are ~150 cd: brighter clips the spot to flat white; fog scattering fills the view with a white cone
-    'Flashlight': {'Intensity': 300.0, 'IntensityUnits': 'Candelas', 'AttenuationRadius': 3000.0, 'InnerConeAngle': 5.0,
+LIGHTS = {  # label: properties; re-running re-applies them
+    # tuned in a packaged Development build: its auto-exposure is far brighter than PIE, where 300 cd already looked white
+    # fog scattering fills the view with a white cone
+    'Flashlight': {'Intensity': 1500.0, 'IntensityUnits': 'Candelas', 'AttenuationRadius': 3000.0, 'InnerConeAngle': 5.0,
                    'OuterConeAngle': 16.0, 'LightColor': WARM, 'VolumetricScatteringIntensity': 0.0, 'CastShadows': True,
                    'IESTexture': {'refPath': '/Engine/EngineLightProfiles/NarrowComplex_IES.NarrowComplex_IES'}, 'bUseIESBrightness': False},
-    'FlashlightSpill': {'Intensity': 60.0, 'IntensityUnits': 'Candelas', 'AttenuationRadius': 1500.0, 'InnerConeAngle': 14.0,
+    'FlashlightSpill': {'Intensity': 300.0, 'IntensityUnits': 'Candelas', 'AttenuationRadius': 1500.0, 'InnerConeAngle': 14.0,
                         'OuterConeAngle': 48.0, 'LightColor': WARM, 'VolumetricScatteringIntensity': 0.0, 'CastShadows': False}}
-HAND = (20.0, 22.0, -24.0)   # camera-relative: forward, right, down
+TERMINAL = '/Game/Substrate/Maps/L_SectorC.L_SectorC:PersistentLevel.BP_Terminal_C_0'
+HAND = (40.0, 10.0, -6.0)   # camera-relative: forward, right, down; any closer and the first-person arms shade the beam out
 
 def write(g, code):
     before = read(RM + ':' + g)
@@ -42,6 +44,10 @@ def place():
             M.call('call_tool', {'toolset_name': M.OBJ, 'tool_name': 'set_properties', 'arguments': {'instance': {'refPath': ref}, 'values': json.dumps({'bHidden': True})}})
         lc = ref + '.LightComponent0'
         print(label, ref.split('.')[-1], M.call('call_tool', {'toolset_name': M.OBJ, 'tool_name': 'set_properties', 'arguments': {'instance': {'refPath': lc}, 'values': json.dumps(dict(props, Mobility='Movable'))}})[:100])
+    # the torch sits behind the raised terminal and blew it out to glare: move the terminal to lighting channel 1 only
+    # (string form: the dict form clears every channel)
+    for c in ('Body', 'Screen'):
+        print(c, M.call('call_tool', {'toolset_name': M.OBJ, 'tool_name': 'set_properties', 'arguments': {'instance': {'refPath': TERMINAL + '.' + c}, 'values': json.dumps({'LightingChannels': '(bChannel0=False,bChannel1=True,bChannel2=False)'})}})[:100])
 
 CODE = {
     'AttachFlashlight': '''(fn AttachFlashlight ()
