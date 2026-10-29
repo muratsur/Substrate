@@ -38,7 +38,8 @@ CODE = {
 def tags():
     import build_sector_a as A
     for label, tag in (('D_ChamberLight_0', 'DChamberLight'), ('D_ChamberLight_1', 'DChamberLight'), ('SectorD_C06_Light', 'DValveLight')):
-        A.call(M.ACT, 'add_tag', {'actor': A.find(label), 'tag': tag})
+        try: A.call(M.ACT, 'add_tag', {'actor': A.find(label), 'tag': tag})
+        except RuntimeError as e: print('tag:', str(e)[-40:])   # already tagged on a re-run
 
 if __name__ == '__main__':
     M.init()

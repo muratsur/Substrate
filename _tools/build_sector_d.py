@@ -73,7 +73,7 @@ def lab():
         place(f'D_LabGrowth_{k}', 'Alien_organism/SM_alien_organism_13', xf(x, y, FZ + 60, k * 70))
     place('D_LabTendril', 'Alien_organism/SM_alien_organism_05', xf(-1000, -4150, FZ + H, 180, (1, 1, 0.6)))
     for k, y in enumerate((-5300, -4600)):
-        light(f'D_LabLight_{k}', -440, y, FZ + 330, 30.0, 1100.0, LAB_LIGHT)
+        light(f'D_LabLight_{k}', -440, y, FZ + 330, 45.0, 1200.0, LAB_LIGHT)
 
 def chamber():
     clusters = ((-950, -3900, 20), (-950, -3300, 140), (-950, -2650, 260), (80, -3850, 200), (80, -3200, 40),
@@ -118,6 +118,26 @@ def stretch_postprocess():
     A.call(M.ACT, 'set_actor_transform', {'actor': a, 'xform': {'location': dict(t['location'], y=t['location']['y'] + (-2200 - b['max']['y']) / 2),
                                                                 'scale': dict(t['scale'], y=t['scale']['y'] * k)}})
 
+def tube_growth():
+    # growth thickens along the last 15 m of the arrival tube, on both walls, clear of the walkway (x -540..-340)
+    spots = ((-800, -7400, 13, 0.8), (-80, -7100, 13, 0.9), (-820, -6800, 10, 0.55), (-60, -6500, 10, 0.6),
+             (-830, -6200, 10, 0.75), (-50, -5950, 10, 0.8), (-780, -5850, 13, 1.2), (-110, -6700, 13, 1.0))
+    for k, (x, y, kind, s) in enumerate(spots):
+        z = FZ + (372 * s if kind == 10 else 89 * s)   # base on the floor: organism_10 pivot is 3.72 m up, _13 0.89 m
+        place(f'D_TubeGrowth_{k}', f'Alien_organism/SM_alien_organism_{kind}', xf(x, y, z, k * 47, (s, s, s)))
+
+def lab_dressing():
+    # instruments left mid-task on the benches and the clean table, and a second chair knocked over
+    items = (('Scientific_props/SM_flask', X0 + 60, -5380, 88), ('Scientific_props/SM_small_scientific_prop_01', X0 + 90, -5300, 88),
+             ('Scientific_props/SM_small_scientific_prop_03', X0 + 60, -4930, 88), ('Scientific_props/SM_flask', X0 + 95, -4860, 88),
+             ('Scientific_props/SM_small_scientific_prop_05', X0 + 70, -4480, 88), ('Scientific_props/SM_small_scientific_prop_02', -220, -5010, 88))
+    for k, (mesh, x, y, dz) in enumerate(items):
+        place(f'D_LabProp_{k}', mesh, xf(x, y, FZ + dz, k * 33))
+    t = {'location': {'x': -120, 'y': -5150, 'z': FZ + 25}, 'rotation': {'pitch': 0, 'yaw': 110, 'roll': 90}, 'scale': {'x': 1, 'y': 1, 'z': 1}}
+    a = A.find('D_ChairFallen') or A.call(M.SCN, 'add_to_scene_from_asset', {'asset_path': KIT + 'Tables/SM_chair_01', 'name': 'D_ChairFallen', 'xform': t})
+    A.call(M.ACT, 'set_actor_transform', {'actor': a, 'xform': t})
+    A.call(M.SCN, 'set_actor_folder', {'actor': a, 'folder_path': FOLDER})
+
 SCREEN_TEXT = 'ROUTE COMPLETE.\nTHANK YOU, TECHNICIAN.\nPROCEED TO RELIEF VALVE.'
 
 def screen():
@@ -135,19 +155,21 @@ def screen():
 
 
 # lab light flicker: BP_RoundManager.FlickerDLab, a 0.15 s looping timer from StartShift; each tick every light tagged
-# DLabLight has a 12% chance to drop to near dark. Lights elsewhere are untouched.
+# DLabLight has a 12% chance to drop to near dark (45 cd otherwise: keep it equal to the lab lights in lab()). Lights elsewhere are untouched.
 RM = '/Game/Substrate/Core/BP_RoundManager.BP_RoundManager'
 FLICKER = '''(fn FlickerDLab ()
   (for l (Actor|GetAllActorsWithTag "DLabLight")
     (bind _lc (Utilities|Casting|CastToLightComponent (Actor|GetComponentByClass l "/Script/Engine.LightComponent"))
       (:then
-        (Rendering|Components|Light|SetIntensity _lc (select (< (Math|Random|RandomIntegerInRange 0 99) 12) 2.0 30.0)))
+        (Rendering|Components|Light|SetIntensity _lc (select (< (Math|Random|RandomIntegerInRange 0 99) 12) 2.0 45.0)))
       (:CastFailed))))
 '''
 
 def flicker():
     import anomaly_build as B
-    for k in range(2): A.call(M.ACT, 'add_tag', {'actor': A.find(f'D_LabLight_{k}'), 'tag': 'DLabLight'})
+    for k in range(2):
+        try: A.call(M.ACT, 'add_tag', {'actor': A.find(f'D_LabLight_{k}'), 'tag': 'DLabLight'})
+        except RuntimeError as e: print('tag:', str(e)[-40:])   # already tagged on a re-run
     try: M.bp('add_function_graph', {'blueprint': {'refPath': RM}, 'graph_name': 'FlickerDLab'})
     except Exception as e: print('FlickerDLab exists:', str(e)[:60])
     B.compile_bp(RM)
@@ -162,4 +184,4 @@ def flicker():
 
 if __name__ == '__main__':
     assert 'false' in M.app('IsPIERunning', {}), 'stop PIE first'
-    print('shell pieces', shell()); lab(); chamber(); move_c06(); stretch_postprocess(); screen(); flicker(); print('done')
+    print('shell pieces', shell()); lab(); chamber(); move_c06(); stretch_postprocess(); screen(); flicker(); tube_growth(); lab_dressing(); print('done')

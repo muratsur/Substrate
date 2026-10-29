@@ -78,6 +78,14 @@ one Absence, even if the roll produced nothing.
 Implemented as `GetBudgetMin` / `GetBudgetMax` / `PickType` on the director
 (small select-chains). Tune them there.
 
+## Every fixture can go missing (2026-10-29)
+
+`_tools/fixture_sites.py` adds an Absence site on every fixture that lacked one (C-01, C-02, C-05, B-01..B-03, A-01,
+A-03; minRound 3-5) and Displacement sites on C-02 (vent) and B-02 (pipe bank). PIE, 8 round-7 shifts: 7 different
+fixtures went missing across all three sectors (before: only C-03, C-04 or A-02), each with its prop hidden.
+Also: a transit room tone (`B_RoomTone`, the hum pitched to 0.7, `_tools/signs.py`), and the flashlight lowered to
+1000 / 200 cd (`_tools/add_flashlight.py`) because 1500 bloomed over the terminal near walls.
+
 ## Visible fixtures and more light sites (2026-10-29)
 
 C-01..C-05 and B-01..B-03 were invisible markers under a light, so there was nothing to find and an Absence on them

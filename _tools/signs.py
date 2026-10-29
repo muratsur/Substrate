@@ -32,6 +32,19 @@ def place(label, text, x, y, z, yaw, size, colour):
     A.call(M.OBJ, 'set_properties', {'instance': {'refPath': l['refPath'] + '.LightComponent0'}, 'values': json.dumps(
         {'Intensity': 6.0, 'IntensityUnits': 'Candelas', 'AttenuationRadius': 250.0, 'LightColor': colour, 'Mobility': 'Movable', 'CastShadows': False})})
 
+# Transit room tone: the dome hum file pitched down and quieter, attenuated to the corridor, so the transit section
+# no longer sounds like the sewer.
+def transit_tone():
+    t = {'location': {'x': 8560, 'y': 3300, 'z': 520}, 'rotation': {'pitch': 0, 'yaw': 0, 'roll': 0}, 'scale': {'x': 1, 'y': 1, 'z': 1}}
+    a = A.find('B_RoomTone') or A.call(M.SCN, 'add_to_scene_from_class', {'actor_type': {'refPath': '/Script/Engine.AmbientSound'}, 'name': 'B_RoomTone', 'xform': t})
+    A.call(M.ACT, 'set_actor_transform', {'actor': a, 'xform': t})
+    A.call(M.SCN, 'set_actor_folder', {'actor': a, 'folder_path': 'Substrate/Audio'})
+    ac = {'refPath': a['refPath'] + '.AudioComponent0'}
+    print('transit tone', A.call(M.OBJ, 'set_properties', {'instance': ac, 'values': json.dumps(
+        {'Sound': {'refPath': '/Game/Substrate/Audio/AMB_RoomTone_Hum.AMB_RoomTone_Hum'}, 'VolumeMultiplier': 0.35, 'PitchMultiplier': 0.7, 'bOverrideAttenuation': True})}),
+        A.call(M.OBJ, 'set_properties', {'instance': ac, 'values': json.dumps(
+        {'AttenuationOverrides': '(bAttenuate=True,bSpatialize=True,FalloffDistance=900.0,AttenuationShapeExtents=(X=1100.0,Y=0.0,Z=0.0))'})}))
+
 if __name__ == '__main__':
     M.init()
     assert 'false' in M.app('IsPIERunning', {}), 'stop PIE first'
@@ -40,3 +53,4 @@ if __name__ == '__main__':
         if a: A.call(M.SCN, 'remove_from_scene', {'actor': a})
     for label, s in SIGNS.items(): place(label, *s)
     print('placed', len(SIGNS), 'signs')
+    transit_tone()

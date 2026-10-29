@@ -16,12 +16,13 @@ call = lambda tool, args: json.loads(M.bp(tool, args))['returnValue']
 read = lambda g: json.loads(M.bp('read_graph_dsl', {'graph': {'refPath': g}})).get('returnValue', '')
 WARM = {'r': 1.0, 'g': 0.93, 'b': 0.82, 'a': 1.0}
 LIGHTS = {  # label: properties; re-running re-applies them
-    # tuned in a packaged Development build: its auto-exposure is far brighter than PIE, where 300 cd already looked white
+    # tuned in a packaged Development build (auto-exposure there is far brighter than PIE); 1500 cd bloomed over the
+    # terminal when a wall was close, so 1000
     # fog scattering fills the view with a white cone
-    'Flashlight': {'Intensity': 1500.0, 'IntensityUnits': 'Candelas', 'AttenuationRadius': 3000.0, 'InnerConeAngle': 5.0,
+    'Flashlight': {'Intensity': 1000.0, 'IntensityUnits': 'Candelas', 'AttenuationRadius': 3000.0, 'InnerConeAngle': 5.0,
                    'OuterConeAngle': 16.0, 'LightColor': WARM, 'VolumetricScatteringIntensity': 0.0, 'CastShadows': True,
                    'IESTexture': {'refPath': '/Engine/EngineLightProfiles/NarrowComplex_IES.NarrowComplex_IES'}, 'bUseIESBrightness': False},
-    'FlashlightSpill': {'Intensity': 300.0, 'IntensityUnits': 'Candelas', 'AttenuationRadius': 1500.0, 'InnerConeAngle': 14.0,
+    'FlashlightSpill': {'Intensity': 200.0, 'IntensityUnits': 'Candelas', 'AttenuationRadius': 1500.0, 'InnerConeAngle': 14.0,
                         'OuterConeAngle': 48.0, 'LightColor': WARM, 'VolumetricScatteringIntensity': 0.0, 'CastShadows': False}}
 TERMINAL = '/Game/Substrate/Maps/L_SectorC.L_SectorC:PersistentLevel.BP_Terminal_C_0'
 HAND = (40.0, 10.0, -6.0)   # camera-relative: forward, right, down; any closer and the first-person arms shade the beam out

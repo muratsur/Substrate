@@ -18,6 +18,9 @@ DEMO COMPLETE, dims the screen to 85% black over 3 s and, at 9 s, deletes save s
 `L_SectorC` at shift 1 (it used to fade fully black and quit). The valve itself (`Fix_D06`) is now a 2.9 m pressure
 canister (`SM_tank`) standing in the chamber; before, it was a thin pipe on a dark floor that playtesters could not find.
 
+Dressing (2026-10-29): growth clusters thicken along the last 15 m of the tube on both walls (walkway traced clear),
+flasks and instruments on the lab benches, a second chair knocked over, lab lights raised to 45 cd (flicker matches).
+
 Details:
 * Rooms are kit wall modules (320 x 120 x 380), 640 x 820 floor tiles and 320 x 820 ceiling panels; every piece is
   placed by label (`D_*`), outliner folder `Substrate/SectorD`, so re-running the script moves rather than duplicates.
