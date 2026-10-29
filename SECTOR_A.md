@@ -39,8 +39,25 @@ The player is dropped into each trigger from above (spawning inside a trigger do
 A airlock lands at (-300, 1400); the sewer airlock lands back in A; the old Dock airlock stays locked with its rows
 unlogged; the console trigger fails the audit and keeps the shift open. Not exercised: a full shift closed in A.
 
+## Fixtures, anomalies, room tone (2026-10-28)
+
+Built by `_tools/sector_a_fixtures.py`.
+
+* Checklist rows 9-11: `A-01 COMMS DESK`, `A-02 GENERATOR`, `A-03 RATION SHELF`. Each is a `BP_Fixture` that carries
+  the prop's mesh on its own `StaticMeshComponent` (fixtures are otherwise invisible markers), so an Absence hides the
+  real prop. `RequiredRowMax` is now 11: the shift needs them, the airlock gates (rows 0-4, 5-7) do not.
+* `C-06 RELIEF VALVE` (end-of-demo phantom) moved from row 8 to row 20; `LogLookedAtFixture` checks 20.
+* Anomaly sites: `Anomaly_A_GeneratorGone` (Absence on A-02, audited), `Anomaly_A_StoolMoved` (Displacement 70 cm),
+  `Anomaly_A_MugGone` (Absence on the mug), `Anomaly_A_LampDead` (Light 0), `Anomaly_A_ExtraMug` (Addition: unhides
+  `A_Jug2`). Only fixture Absences change the audit; the others are there to be noticed.
+* `A_RoomTone`: `AMB_RoomTone_Hum` at the generator, volume 0.5, 5 m inner radius + 9 m falloff.
+
+PIE, round 7 save, 6 shift starts: the terminal lists 11 rows; mug, stool, lamp and extra-mug anomalies each fired at
+least once. The dome sites now take a large share of the picks (the stool is the only displacement site before
+round 8).
+
 ## Not done yet
 
-Sector A's own checklist fixtures and anomaly sites, and room tone.
+A full shift played through in a packaged build.
 
 Scripts: `_tools/build_sector_a.py` (room), `_tools/wire_sector_a.py` (spawn, trigger, airlocks, doors).

@@ -15,17 +15,15 @@ PIECES = {
     'A_House':        ('House_modules/SM_house', 0, 0, 0, 0),
     'A_Floor':        ('Floors/SM_floor_house_circular', 0, 0, 0, 0),
     'A_Console':      ('Console/SM_console', -430, 180, 0, 180),
-    'A_SmallConsole': ('Small_console/SM_small_console', -430, -150, 0, 90),
     'A_Table':        ('Table/SM_table', 150, 0, 0, 90),
     'A_Stool1':       ('Stool/SM_stool', 40, -60, 0, 20),
     'A_Stool2':       ('Stool/SM_stool', 260, 70, 0, -35),
     'A_Jug':          ('Kitchen_props/SM_jug', 140, 40, 77, 0),
     'A_Tray':         ('Kitchen_props/SM_tray', 170, -60, 77, 15),
-    'A_Shelf':        ('Furniture/SM_furniture_01', 420, 260, 0, 90),
     'A_CrateA':       ('Crates/SM_crate_01', 380, -320, 0, 70),
     'A_CrateB':       ('Crates/SM_crate_02', 330, -330, 65, 80),
-    'A_Generator':    ('Generator/SM_Generator', -380, -380, 0, 0),
     'A_Lamp':         ('Ceiling_lamps/SM_lamp_02', 0, 0, 560, 0)}
+# the comms desk, generator and shelf are checklist fixtures: sector_a_fixtures.py places them
 # label: (dx, dy, dz, candelas, radius, colour)
 LIGHTS = {
     'A_LightMain':    (0, 0, 480, 40.0, 1500.0, {'r': 1.0, 'g': 0.8, 'b': 0.6, 'a': 1.0}),

@@ -43,7 +43,8 @@ multi-line string is deliberate: names and states are separate `TextBlock`s in a
 `HorizontalBox`, both monospaced, so the columns line up without sorting code and
 without one widget per row.
 
-`C-06 RELIEF VALVE` has `RowOrder 8`, above `RequiredRowMax`, so it is not on the
+`C-06 RELIEF VALVE` has `RowOrder 20` (was 8 until Sector A's rows 9-11 arrived and
+`RequiredRowMax` went to 11), above `RequiredRowMax`, so it is not on the
 terminal and logging it does not move the count — that is the phantom row from
 `TEST_ME.md`, and it is what I used to prove the required-rows rule.
 
