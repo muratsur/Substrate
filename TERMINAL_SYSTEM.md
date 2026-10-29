@@ -55,6 +55,15 @@ the text in the footer's last-action slot, raises the terminal, and clears the h
 for: airlock locked, nothing in range, west gate open, and the F tip on shift 1. Sector D and the demo end raise the
 terminal with their own text. Debug prints are unchanged. Built by `_tools/hints_on_terminal.py`.
 
+## Wayfinding (2026-10-28)
+
+`BP_RoundManager.UpdateWayfinding` runs after every log and photo, and 0.5 s after `StartShift`. It counts the rows
+still open in the sewer gate (0-4) and the transit gate (5-7) with the gate's own test (logged correctly or
+photographed), turns the lamps over those airlocks (`WayLampC` at the Dock, `WayLampB` at the Transit end) red or
+green, and shows "SEWER LOGGED - TRANSIT AIRLOCK OPEN" / "TRANSIT LOGGED - AIRLOCK BACK TO DOCK" once per shift.
+`OpenWestGate`'s all-logged hint now reads "ALL LOGGED - CLOSE SHIFT AT DOME CONSOLE". `BP_Airlock.GateOpen` counts a
+photographed fixture as done, as the audit does. Built by `_tools/wayfinding.py`.
+
 ## Inspection camera (2026-10-27)
 
 `C` calls `BP_RoundManager.TakePhoto`: the same 4 m view test as E/Q picks a fixture, and one of 3 film shots per shift
