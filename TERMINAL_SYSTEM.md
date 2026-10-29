@@ -55,6 +55,12 @@ the text in the footer's last-action slot, raises the terminal, and clears the h
 for: airlock locked, nothing in range, west gate open, and the F tip on shift 1. Sector D and the demo end raise the
 terminal with their own text. Debug prints are unchanged. Built by `_tools/hints_on_terminal.py`.
 
+## Signs (2026-10-29)
+
+Glowing wall signs (`_tools/signs.py`, folder `Substrate/Signs`) at the dome airlock ("AIRLOCK / SECTOR C - SEWER"),
+the close-shift console ("CLOSE SHIFT / LOG EVERY ROW FIRST"), the two dock airlocks ("SECTOR A - DOME",
+"SECTOR B - TRANSIT", on the wall behind them, read from the dock) and the transit return airlock.
+
 ## Dispatcher (2026-10-28)
 
 `BP_RoundManager.ShowDispatch` pushes an `INCOMING DISPATCH` message over the checklist at shift start (1.5 s; 10 s on

@@ -100,6 +100,13 @@ def move_c06():
         a = A.find(label)
         l = A.call(M.ACT, 'get_actor_transform', {'actor': a})['location']
         A.call(M.ACT, 'set_actor_transform', {'actor': a, 'xform': {'location': {'x': l['x'] + dx, 'y': l['y'] + dy, 'z': l['z']}}})
+    # the valve itself was only a thin pipe on a dark floor: the fixture now carries a pressure-canister mesh, standing
+    # on the floor (fixture origin = mesh base), so it reads as the thing to log
+    # SM_tank is ~9.7 m tall with its pivot 4.95 m above its base: scale to ~2.9 m and lift so the base sits on the floor
+    A.call(M.ACT, 'set_actor_transform', {'actor': fix, 'xform': {'location': {'x': C06[0], 'y': C06[1], 'z': FZ + 495 * 0.3},
+                                                                  'scale': {'x': 0.3, 'y': 0.3, 'z': 0.3}}})
+    A.call(M.OBJ, 'set_properties', {'instance': {'refPath': fix['refPath'] + '.StaticMeshComponent'},
+                                     'values': json.dumps({'StaticMesh': {'refPath': '/Game/Scifi_Hideout/Meshes/Generator/SM_tank.SM_tank'}})})
 
 def stretch_postprocess():
     # SectorD_PostProcess ended at y -3800; cover the chamber too (to y -2200)

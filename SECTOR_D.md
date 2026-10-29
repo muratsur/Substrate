@@ -12,6 +12,12 @@ Closing shift 8 (`EnterSectorD`) teleports you to the arrival tube at (-660, -85
 
 Logging C-06 (row 20) still calls `EndDemo`: terminal "SUBSTRATE DEMO COMPLETE", 3 s fade, quit at 5 s.
 
+Ending (2026-10-29, `_tools/ending_restart.py`): logging C-06 now plays a low venting sound, kills the chamber's red
+lights (tag `DChamberLight`), turns the valve light (tag `DValveLight`) cold white, raises the terminal with SUBSTRATE
+DEMO COMPLETE, dims the screen to 85% black over 3 s and, at 9 s, deletes save slot `Substrate_0` and reopens
+`L_SectorC` at shift 1 (it used to fade fully black and quit). The valve itself (`Fix_D06`) is now a 2.9 m pressure
+canister (`SM_tank`) standing in the chamber; before, it was a thin pipe on a dark floor that playtesters could not find.
+
 Details:
 * Rooms are kit wall modules (320 x 120 x 380), 640 x 820 floor tiles and 320 x 820 ceiling panels; every piece is
   placed by label (`D_*`), outliner folder `Substrate/SectorD`, so re-running the script moves rather than duplicates.

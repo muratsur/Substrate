@@ -24,10 +24,10 @@ PIECES = {
     'A_CrateB':       ('Crates/SM_crate_02', 330, -330, 65, 80),
     'A_Lamp':         ('Ceiling_lamps/SM_lamp_02', 0, 0, 560, 0)}
 # the comms desk, generator and shelf are checklist fixtures: sector_a_fixtures.py places them
-# label: (dx, dy, dz, candelas, radius, colour)
+# label: (dx, dy, dz, candelas, radius, colour); main lamp raised 40 -> 70 cd after playtests found the dome too dark
 LIGHTS = {
-    'A_LightMain':    (0, 0, 480, 40.0, 1500.0, {'r': 1.0, 'g': 0.8, 'b': 0.6, 'a': 1.0}),
-    'A_LightConsole': (-330, 100, 180, 8.0, 500.0, {'r': 0.6, 'g': 0.85, 'b': 1.0, 'a': 1.0})}
+    'A_LightMain':    (0, 0, 480, 70.0, 1500.0, {'r': 1.0, 'g': 0.8, 'b': 0.6, 'a': 1.0}),
+    'A_LightConsole': (-330, 100, 180, 14.0, 500.0, {'r': 0.6, 'g': 0.85, 'b': 1.0, 'a': 1.0})}
 
 def call(ts, tool, args):
     r = M.call('call_tool', {'toolset_name': ts, 'tool_name': tool, 'arguments': args})

@@ -78,6 +78,16 @@ one Absence, even if the roll produced nothing.
 Implemented as `GetBudgetMin` / `GetBudgetMax` / `PickType` on the director
 (small select-chains). Tune them there.
 
+## Visible fixtures and more light sites (2026-10-29)
+
+C-01..C-05 and B-01..B-03 were invisible markers under a light, so there was nothing to find and an Absence on them
+(the audited kind, guaranteed every shift from round 3) changed nothing on screen. Each fixture's own mesh component now
+carries a prop that fits its name (C-01 tank, C-02 vent, C-03 gauge console, C-04 standing lamp, C-05 floor grate,
+B-01 pump unit, B-02 / B-03 pipe banks against the transit wall), collision off; Absence hides it, Displacement moves
+it. `_tools/fixture_meshes.py`. Six Light sites were added on the route (`_tools/light_sites.py`): the lamps over C-01,
+C-02, C-05 and the three transit lights. PIE, 8 round-7 shifts: every shift hid one audited prop (C-03, C-04 or A-02,
+`bHidden` true) and 12 different anomaly kinds fired, including the new light sites.
+
 ## Audited anomaly guarantee and pick fix (2026-10-29)
 
 Only a fixture whose `FixtureState != 0` changes the audit; a playtest shift 7 came out all PASS because the roll
