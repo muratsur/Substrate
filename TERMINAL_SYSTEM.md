@@ -55,6 +55,14 @@ the text in the footer's last-action slot, raises the terminal, and clears the h
 for: airlock locked, nothing in range, west gate open, and the F tip on shift 1. Sector D and the demo end raise the
 terminal with their own text. Debug prints are unchanged. Built by `_tools/hints_on_terminal.py`.
 
+## Dispatcher (2026-10-28)
+
+`BP_RoundManager.ShowDispatch` pushes an `INCOMING DISPATCH` message over the checklist at shift start (1.5 s; 10 s on
+shift 1, after the key and route tips), raises the terminal, plays a radio blip, and restores the checklist after 9 s
+(any log restores it sooner). One message per shift for rounds 1-8; Overtime (9+) gets "THIS CHANNEL IS NOT IN USE."
+The lines live in `_tools/dispatcher.py` (`LINES`, max 28 characters per line, joined with `NL`). Checked in a
+Development build: shift 1 shows the message, then the checklist returns.
+
 ## Wayfinding (2026-10-28)
 
 `BP_RoundManager.UpdateWayfinding` runs after every log and photo, and 0.5 s after `StartShift`. It counts the rows
