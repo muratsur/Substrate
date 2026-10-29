@@ -26,6 +26,13 @@ clear of the canal water plane (y < 2910) and above the canal rescue volume (z <
 which only worked with exactly two. The original pair (`Airlock_DockToTransit` / `Airlock_TransitToDock`) are each
 other's partners.
 
+## Signposting (2026-10-28)
+
+The first playtest found the airlock unreadable: the doorway looked shut and the jump felt like a glitch. Now:
+`Transit` plays a hiss and fades in from black; a green lamp hangs over each always-open airlock
+(`A_AirlockLampA`, `A_AirlockLampDock`); crates (`A_BackCrates`) block the back door so it reads as storage; and on
+shift 1, `ShowRouteTip` (5.5 s, after the key tip clears) says "GREEN DOOR: AIRLOCK   CONSOLE: CLOSE SHIFT".
+
 ## Verified in Play-in-Editor (2026-10-28)
 
 The player is dropped into each trigger from above (spawning inside a trigger does not count as entering it):
@@ -34,6 +41,6 @@ unlogged; the console trigger fails the audit and keeps the shift open. Not exer
 
 ## Not done yet
 
-Sector A's own checklist fixtures and anomaly sites, room tone, and a visible marker for the sewer-side airlock.
+Sector A's own checklist fixtures and anomaly sites, and room tone.
 
 Scripts: `_tools/build_sector_a.py` (room), `_tools/wire_sector_a.py` (spawn, trigger, airlocks, doors).
