@@ -78,6 +78,17 @@ one Absence, even if the roll produced nothing.
 Implemented as `GetBudgetMin` / `GetBudgetMax` / `PickType` on the director
 (small select-chains). Tune them there.
 
+## Audited anomaly guarantee and pick fix (2026-10-29)
+
+Only a fixture whose `FixtureState != 0` changes the audit; a playtest shift 7 came out all PASS because the roll
+landed only on lights and props. From round 3, `RollAnomalies` now counts anomalous fixtures
+(`CountFixtureAnomalies`) after the normal roll and, if there are none, tries Absence up to 4 more times.
+
+`PickByIndex` had a bug since it was written: after reaching the wanted candidate it stopped counting, so every later
+eligible socket matched too and the director always picked the **last** eligible socket of each type. Fixed; over 8
+PIE shift starts the audited anomaly spread over C-03, C-04 and A-02 (it was A-02 every time before).
+Built by `_tools/guarantee_audited_anomaly.py`.
+
 ## Contamination (round 8+ and Overtime)
 
 `BP_RoundManager.Contamination` goes up by 1 when an audit fails with a missed anomaly, and down by 1 (min 0) on a clean
