@@ -155,6 +155,10 @@ if paks_dir.exists():
             "sha256": compute_sha256(f)
         }
 
+readme = Path(r"D:\Projects\Substrate\README_TESTERS.txt")   # the tester notes travel with every build
+if readme.exists() and ARCHIVE_DIR.exists():
+    (ARCHIVE_DIR / readme.name).write_bytes(readme.read_bytes())
+
 prov_file = EVIDENCE_DIR / f"build_provenance_{TIMESTAMP}.json"
 with open(prov_file, "w", encoding="utf-8") as f:
     json.dump(provenance_data, f, indent=2)

@@ -27,7 +27,7 @@ FUNCS = {
   (CallFunction|FindTerminal)
   (CallFunction|PushTerminal :Header "SUBSTRATE" :Names
       {TITLE_LINES}
-    :States "" :Footer "MAINTENANCE CONTRACT - SECTORS A TO D")
+    :States "" :Footer "DEMO 0.9 - ESC: SETTINGS")
   (CallFunction|RaiseTerminal))
 ''',
     'SaveFreshStart': f'''(fn SaveFreshStart ()

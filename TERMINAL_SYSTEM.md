@@ -55,6 +55,19 @@ the text in the footer's last-action slot, raises the terminal, and clears the h
 for: airlock locked, nothing in range, west gate open, and the F tip on shift 1. Sector D and the demo end raise the
 terminal with their own text. Debug prints are unchanged. Built by `_tools/hints_on_terminal.py`.
 
+## Settings and demo packaging (2026-10-29)
+
+Pause menu (Esc) has a SETTINGS block: look sensitivity (0.2-3), volume (0-1, master submix), brightness (`gamma`,
+1.6-3.0) and invert Y. Values live on `BP_RoundManager` (`LoadPlayerSettings` / `SavePlayerSettings` /
+`ApplyPlayerSettings`, own save slot `Substrate_Settings`, so new games and the ending never reset them) and reach the
+pawn through `BP_FirstPersonCharacter.Aim`. The first version named the functions `LoadSettings` etc., and
+`CallFunction|LoadSettings` silently resolved to the engine's GameUserSettings function; those graphs are left empty.
+Built by `_tools/settings_menu.py`. Verified in PIE: defaults load (1 / 1 / 2.2 / off), reach the pawn, and
+`gamma 2.2` runs. Not verified: dragging the sliders (needs the mouse).
+Packaging: window title SUBSTRATE and version 0.9.0 (`Config/DefaultGame.ini`), an application icon
+(`Build/Windows/Application.ico`, the terminal's amber S), "DEMO 0.9" on the title screen, and `README_TESTERS.txt`,
+which `_tools/package_shipping.py` now copies next to every build.
+
 ## Title and Overtime (2026-10-29)
 
 The game opens on the terminal, in the dome, instead of straight into a shift (`ShowTitle` from `EventBeginPlay`,
