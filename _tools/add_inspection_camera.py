@@ -2,6 +2,8 @@
 shift. A photographed fixture counts as reported at the audit whatever its state: it is the hedge for "I'm not sure",
 and it reveals nothing (the terminal shows [PHOTO], the remaining count drops either way). Photographed IDs are kept as
 "|ID|" in the PhotoIDs string (no array variables through this toolset); StartShift resets film and photos.
+Since overtime_title.py, TakePhoto only routes (title -> TitleOvertime, else PhotoShot): after re-running this
+script, run overtime_title.photo() again so the photo body lands in PhotoShot.
 Usage: python _tools/add_inspection_camera.py   (PIE stopped), then save BP_RoundManager."""
 import sys, json, difflib
 sys.path.insert(0, '_tools')

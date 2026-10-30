@@ -55,6 +55,18 @@ the text in the footer's last-action slot, raises the terminal, and clears the h
 for: airlock locked, nothing in range, west gate open, and the F tip on shift 1. Sector D and the demo end raise the
 terminal with their own text. Debug prints are unchanged. Built by `_tools/hints_on_terminal.py`.
 
+## Title and Overtime (2026-10-29)
+
+The game opens on the terminal, in the dome, instead of straight into a shift (`ShowTitle` from `EventBeginPlay`,
+`TitleMode` true): **E** START SHIFT 00N (continue the save), **Q** NEW GAME FROM SHIFT 001, **C** OVERTIME (best
+shift shown; locked until the demo is finished, a buzz if pressed). While the title is up, `OnEKey` / `OnQKey` /
+`TakePhoto` route to `TitleContinue` / `TitleNew` / `TitleOvertime`; the photo logic itself lives in `PhotoShot`.
+Finishing the demo (`EndDemo`) sets `bOvertimeUnlocked` and `CompletedSectorD` and writes the save as shift 1 plus the
+unlock (`SaveFreshStart`); `RestartDemo` reopens the level onto the title. NEW GAME keeps the unlock. Overtime runs the
+existing `StartOvertime` (shift 9+, anomaly types 10-13, `OvertimeShift` / `HighestOvertimeShift`).
+Built by `_tools/overtime_title.py` (with `_tools/ending_restart.py`). Verified in PIE: the level starts in
+`TitleMode` with no shift open and the terminal raised. Not verified: the E/Q/C choices themselves (need key presses).
+
 ## Signs (2026-10-29)
 
 Glowing wall signs (`_tools/signs.py`, folder `Substrate/Signs`) at the dome airlock ("AIRLOCK / SECTOR C - SEWER"),

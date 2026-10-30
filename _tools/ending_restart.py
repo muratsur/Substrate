@@ -1,8 +1,8 @@
 """The demo ending holds instead of quitting, and the valve reacts: a low venting sound, the chamber's red lights
 (tag DChamberLight) die and the valve light (tag DValveLight) turns cold white. EndDemo used to fade fully to black (hiding the terminal message) and quit
 5 s later, which in the editor just looks like Play stopping. Now: terminal raised with SUBSTRATE DEMO COMPLETE, the
-screen dims to 85% black over 3 s so the message stays readable, and 9 s in RestartDemo deletes save slot Substrate_0
-and reopens L_SectorC at shift 1. (Overtime is never unlocked anywhere, so the reset loses only shift progress.)
+screen dims to 85% black over 3 s so the message stays readable, EndDemo unlocks Overtime and saves shift 1
+(SaveFreshStart, from overtime_title.py), and 9 s in RestartDemo reopens L_SectorC on the title screen.
 Usage: python _tools/ending_restart.py   (PIE stopped), then save BP_RoundManager."""
 import sys, json, difflib
 sys.path.insert(0, '_tools')
@@ -28,10 +28,12 @@ CODE = {
         (Rendering|Components|Light|SetIntensity _vc 60.0))
       (:CastFailed)))
   (CameraFades|StartCameraFade (Game|GetPlayerCameraManager 0) 0.0 0.85 3.0 "(R=0.000000,G=0.000000,B=0.000000,A=1.000000)" true true)
+  (Variables|Default|SetOvertimeUnlocked true)
+  (Variables|Default|SetCompletedSectorD true)
+  (CallFunction|SaveFreshStart)
   (Utilities|Time|SetTimerbyFunctionName :Object _self :FunctionName "RestartDemo" :Time 9.0))
 ''',
     'RestartDemo': '''(fn RestartDemo ()
-  (SaveGame|DeleteGameInSlot :SlotName "Substrate_0" :UserIndex 0)
   (Game|OpenLevel(byName) :LevelName "/Game/Substrate/Maps/L_SectorC"))
 '''}
 

@@ -7,6 +7,8 @@
 - BP_Airlock.GateOpen counts a photographed fixture as done, the same as the audit does (add_inspection_camera.py);
   before, a photo satisfied the audit but left the airlock shut.
 "Done" is the gate's own test (logged correctly or photographed), so the lamp tells you no more than the gate does.
+Since overtime_title.py, TakePhoto only routes (title -> TitleOvertime, else PhotoShot): after re-running this
+script, run overtime_title.photo() again so the photo body lands in PhotoShot.
 Usage: python _tools/wayfinding.py   (PIE stopped), then save L_SectorC, BP_RoundManager, BP_Airlock."""
 import sys, json, difflib
 sys.path.insert(0, '_tools')
