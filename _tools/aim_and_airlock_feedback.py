@@ -51,7 +51,7 @@ PEND_OLD = '(Variables|Default|SetPending (+ (Variables|Default|GetPending) 1))'
 PEND_NEW = PEND_OLD + '\n      (if (== (Class|BPFixture|GetLogResult _asbp_fixture) 0) (Variables|Default|SetUnlogged (+ (Variables|Default|GetUnlogged) 1)))'
 
 def ok(r, what):
-    if any(m in str(r).lower() for m in ('"iserror": true', '"iserror":true', 'does not exist', 'could not', 'traceback', 'cannot rebind', 'assertionerror', 'expects only')):
+    if any(m in str(r).lower() for m in ('"iserror": true', '"iserror":true', 'does not exist', 'could not', 'traceback', 'cannot rebind', 'assertionerror', 'expects only', 'is required by the function', 'could not be set')):
         raise SystemExit(f'{what} failed; nothing saved:\n{str(r)[:1500]}')
     return r
 
