@@ -3,7 +3,8 @@ C-01..C-05 and B-01..B-03 were invisible markers under a light (BP_Fixture has n
 nothing to look at, and an Absence anomaly on them (the audited kind, guaranteed every shift from round 3) changed
 nothing on screen. Each fixture's own StaticMeshComponent now carries a kit mesh that fits its name, standing on the
 floor under its light; Absence hides it, Displacement moves it. Transit props sit against the +X wall so the corridor
-stays walkable. Collision is off on these props (profile NoCollision): they are looked at, not walked around.
+stays walkable. Props are solid (BlockAllDynamic): with collision off the player walked through them (playtest
+2026-11-08). Place any new prop clear of the walk lane; Absence turns its collision off while hidden.
 Usage: python _tools/fixture_meshes.py   (PIE stopped), then save L_SectorC."""
 import sys, json
 sys.path.insert(0, '_tools')
@@ -35,7 +36,7 @@ def apply():
         d = trace((x, y, loc['z'] + 50), (x, y, loc['z'] - 400))
         floor = loc['z'] + 50 - d if d is not None else loc['z'] - 120
         A.call(M.OBJ, 'set_properties', {'instance': smc, 'values': json.dumps({'StaticMesh': {'refPath': mesh + '.' + mesh.split('/')[-1]},
-              'BodyInstance': '(CollisionEnabled=NoCollision,CollisionProfileName="NoCollision")'})})   # dict form is silently ignored
+              'BodyInstance': '(CollisionEnabled=QueryAndPhysics,CollisionProfileName="BlockAllDynamic")'})})   # dict form is silently ignored
         A.call(M.ACT, 'set_actor_transform', {'actor': a, 'xform': {'location': {'x': x, 'y': y, 'z': floor + off * s},
               'rotation': {'pitch': 0, 'yaw': yaw, 'roll': 0}, 'scale': {'x': s, 'y': s, 'z': s}}})
         print(ref, mesh.split('/')[-1], 'floor', round(floor), 'at', round(x), round(y))
