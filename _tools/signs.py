@@ -15,15 +15,18 @@ SIGNS = {   # the dock airlocks stand against a wall on their north side (y 1476
     'Sign_DomeConsole':   ('CLOSE SHIFT\nLOG EVERY ROW FIRST', X - 470, Y + 180, Z + 290, 0, 22, AMBER),
     'Sign_DockToDome':    ('AIRLOCK\nSECTOR A - DOME', -300, 1465, 600, -90, 24, GREEN),
     'Sign_DockTransit':   ('AIRLOCK\nSECTOR B - TRANSIT', 300, 1465, 600, -90, 24, AMBER),
-    'Sign_TransitReturn': ('AIRLOCK\nDOCK - SECTOR C', 8560, 4380, 640, -90, 24, AMBER)}
+    'Sign_TransitReturn': ('AIRLOCK\nDOCK - SECTOR C', 8560, 4380, 640, -90, 24, AMBER),
+    # C-02's round vent sits on the wall east of the arch at the top of the stairs; label it as a checklist fixture
+    'Sign_FixtureC02':    ('C-02 FILTRATION SEAL\nINSPECT - E / Q', 3340, 6320, 570, -90, 12, AMBER)}
 
-def place(label, text, x, y, z, yaw, size, colour):
+def place(label, text, x, y, z, yaw, size, colour, light=True):
     t = {'location': {'x': x, 'y': y, 'z': z}, 'rotation': {'pitch': 0, 'yaw': yaw, 'roll': 0}, 'scale': {'x': 1, 'y': 1, 'z': 1}}
     a = A.find(label) or A.call(M.SCN, 'add_to_scene_from_class', {'actor_type': {'refPath': '/Script/Engine.TextRenderActor'}, 'name': label, 'xform': t})
     A.call(M.ACT, 'set_actor_transform', {'actor': a, 'xform': t})
     A.call(M.SCN, 'set_actor_folder', {'actor': a, 'folder_path': FOLDER})
     A.call(M.OBJ, 'set_properties', {'instance': {'refPath': a['refPath'] + '.NewTextRenderComponent'}, 'values': json.dumps(
         {'Text': text, 'WorldSize': float(size), 'HorizontalAlignment': 'EHTA_Center', 'VerticalAlignment': 'EVRTA_TextCenter'})})
+    if not light: return
     lx, ly = x + 60 * (1 if yaw == 0 else -1 if yaw == 180 else 0), y + 60 * (1 if yaw == 90 else -1 if yaw == -90 else 0)
     lt = {'location': {'x': lx, 'y': ly, 'z': z}, 'rotation': {'pitch': 0, 'yaw': 0, 'roll': 0}, 'scale': {'x': 1, 'y': 1, 'z': 1}}
     l = A.find(label + '_Light') or A.call(M.SCN, 'add_to_scene_from_class', {'actor_type': {'refPath': '/Script/Engine.PointLight'}, 'name': label + '_Light', 'xform': lt})

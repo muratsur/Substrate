@@ -3,7 +3,8 @@ C-01..C-05 and B-01..B-03 were invisible markers under a light (BP_Fixture has n
 nothing to look at, and an Absence anomaly on them (the audited kind, guaranteed every shift from round 3) changed
 nothing on screen. Each fixture's own StaticMeshComponent now carries a kit mesh that fits its name, standing on the
 floor under its light; Absence hides it, Displacement moves it. Transit props sit against the +X wall so the corridor
-stays walkable. Collision is off on these props (profile NoCollision): they are looked at, not walked around.
+stays walkable. Props are solid (BlockAllDynamic): with collision off the player walked through them (playtest
+2026-11-08). Place any new prop clear of the walk lane; Absence turns its collision off while hidden.
 Usage: python _tools/fixture_meshes.py   (PIE stopped), then save L_SectorC."""
 import sys, json
 sys.path.insert(0, '_tools')
@@ -13,7 +14,7 @@ LV = '/Game/Substrate/Maps/L_SectorC.L_SectorC:PersistentLevel.'
 # fixture actor: (mesh, scale, base offset = pivot height above the mesh's bottom at scale 1, yaw, dx, dy)
 PROPS = {
     'BP_Fixture_C_0': ('/Game/Scifi_Hideout/Meshes/Generator/SM_tank', 0.18, 495, 0, 0, 0),           # C-01 INLET VALVE
-    'BP_Fixture_C_1': ('/Game/Scifi_Hideout/Meshes/Vent/SM_vent', 1.5, 61, 0, 0, 0),                  # C-02 FILTRATION SEAL
+    'BP_Fixture_C_1': ('/Game/Scifi_Hideout/Meshes/Vent/SM_vent', 1.5, 61, 0, 0, 0),                  # C-02 FILTRATION SEAL; moved by hand to the wall at (3340, 6340, 421) - it plugged the arch
     'BP_Fixture_C_2': ('/Game/Scifi_Hideout/Meshes/Console/SM_console', 0.7, 0, -90, 0, 0),            # C-03 PRESSURE GAUGE
     'BP_Fixture_C_3': ('/Game/Ice_Station/Meshes/Exterior_lamp/SM_exterior_lamp_01', 0.45, 0, 0, 0, 0),  # C-04 OVERFLOW LAMP
     'BP_Fixture_C_4': ('/Game/Alien_Biomass/Meshes/Lamps/SM_floor_lamp', 1.5, 0, 0, 0, 0),            # C-05 OUTFALL GRATE
@@ -35,7 +36,7 @@ def apply():
         d = trace((x, y, loc['z'] + 50), (x, y, loc['z'] - 400))
         floor = loc['z'] + 50 - d if d is not None else loc['z'] - 120
         A.call(M.OBJ, 'set_properties', {'instance': smc, 'values': json.dumps({'StaticMesh': {'refPath': mesh + '.' + mesh.split('/')[-1]},
-              'BodyInstance': {'collisionEnabled': 'NoCollision', 'collisionProfileName': 'NoCollision'}})})
+              'BodyInstance': '(CollisionEnabled=QueryAndPhysics,CollisionProfileName="BlockAllDynamic")'})})   # dict form is silently ignored
         A.call(M.ACT, 'set_actor_transform', {'actor': a, 'xform': {'location': {'x': x, 'y': y, 'z': floor + off * s},
               'rotation': {'pitch': 0, 'yaw': yaw, 'roll': 0}, 'scale': {'x': s, 'y': s, 'z': s}}})
         print(ref, mesh.split('/')[-1], 'floor', round(floor), 'at', round(x), round(y))
