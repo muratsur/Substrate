@@ -16,11 +16,17 @@ SAVE = '/Game/Substrate/Core/BP_SubstrateSave.BP_SubstrateSave_C'
 read = lambda g: json.loads(M.bp('read_graph_dsl', {'graph': {'refPath': RM + ':' + g}})).get('returnValue', '')
 NL = '(Variables|Default|GetNL)'
 SHIFT_NO = '(Utilities|String|Append (select (< (+ (Variables|Default|GetCurrentRound) 1) 10) "00" "0") (Utilities|String|ToString(Integer) (+ (Variables|Default|GetCurrentRound) 1)))'
-TITLE_LINES = f'''(Utilities|String|Append (Utilities|String|Append "E   START SHIFT " {SHIFT_NO})
-        (Utilities|String|Append {NL} (Utilities|String|Append "Q   NEW GAME FROM SHIFT 001"
-        (Utilities|String|Append {NL} (select (Variables|Default|GetOvertimeUnlocked)
-          (Utilities|String|Append "C   OVERTIME - BEST SHIFT " (Utilities|String|ToString(Integer) (Variables|Default|GetHighestOvertimeShift)))
-          "C   OVERTIME (LOCKED)")))))'''
+def _joined(parts):
+    """nested Append with the NL variable between the title's lines"""
+    expr = parts[-1]
+    for part in reversed(parts[:-1]):
+        expr = f'(Utilities|String|Append {part} (Utilities|String|Append {NL} {expr}))'
+    return expr
+TITLE_LINES = _joined([
+    f'(Utilities|String|Append "E   START SHIFT " {SHIFT_NO})',
+    '"Q   NEW GAME FROM SHIFT 001"',
+    '(select (Variables|Default|GetOvertimeUnlocked) (Utilities|String|Append "C   OVERTIME - BEST SHIFT " (Utilities|String|ToString(Integer) (Variables|Default|GetHighestOvertimeShift))) "C   OVERTIME (LOCKED)")',
+    '(Utilities|String|Append (Utilities|String|Append "DOCUMENTED " (Utilities|String|ToString(Integer) (Variables|Default|GetDiscoveredCount))) " / 14 ANOMALY TYPES")'])
 FUNCS = {
     'ShowTitle': f'''(fn ShowTitle ()
   (Variables|Default|SetTitleMode true)
@@ -36,6 +42,8 @@ FUNCS = {
   (Class|BPSubstrateSave|SetOvertimeUnlocked (Variables|Default|GetOvertimeUnlocked) _s)
   (Class|BPSubstrateSave|SetCompletedSectorD (Variables|Default|GetCompletedSectorD) _s)
   (Class|BPSubstrateSave|SetHighestOvertimeShift (Variables|Default|GetHighestOvertimeShift) _s)
+  (Class|BPSubstrateSave|SetDiscoveredMask (Variables|Default|GetDiscoveredMask) _s)
+  (Class|BPSubstrateSave|SetDiscoveredCount (Variables|Default|GetDiscoveredCount) _s)
   (SaveGame|SaveGameToSlot :SaveGameObject _s :SlotName "Substrate_0" :UserIndex 0))
 ''',
     'TitleContinue': '''(fn TitleContinue ()

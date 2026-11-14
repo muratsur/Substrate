@@ -78,6 +78,20 @@ one Absence, even if the roll produced nothing.
 Implemented as `GetBudgetMin` / `GetBudgetMax` / `PickType` on the director
 (small select-chains). Tune them there.
 
+## Codex and Overtime decay (2026-11-13)
+
+`_tools/codex_overtime.py`. `RecordDiscoveredAnomalies` was an empty function although `DiscoveredMask` /
+`DiscoveredCount` were saved and loaded; on a clean close it now sets one bit per anomaly type (0-13) that had an
+applied socket that shift. The title shows `DOCUMENTED n / 14 ANOMALY TYPES`, and `SaveFreshStart` carries the codex
+across the ending and NEW GAME. `ApplyOvertimeDecay` (ambient pitch sinks, fixture catch-lights dim with
+`OvertimeShift`) was never called; `StartShift` now runs it 0.6 s in (a no-op outside Overtime).
+
+Verified in PIE by temporarily auto-starting from `EventBeginPlay` (the title needs a key press): over 3 round-7
+shifts the recorded mask equalled the applied types exactly (e.g. types 0, 4, 8 -> mask 273, count 3); auto-picking
+Overtime gave round 9, `bIsOvertime`, `OvertimeShift` 1, ambient pitch 0.33, catch-lights 5000 -> 1800, and an
+Overtime-only anomaly (type 12, shadow stalker) applied. `EventBeginPlay` was restored afterwards.
+Not wired: the three achievement events (`CheckSteamAchievements`), which need an online subsystem.
+
 ## Every fixture can go missing (2026-10-29)
 
 `_tools/fixture_sites.py` adds an Absence site on every fixture that lacked one (C-01, C-02, C-05, B-01..B-03, A-01,
