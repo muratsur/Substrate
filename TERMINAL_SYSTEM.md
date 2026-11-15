@@ -68,6 +68,12 @@ Packaging: window title SUBSTRATE and version 0.9.0 (`Config/DefaultGame.ini`), 
 (`Build/Windows/Application.ico`, the terminal's amber S), "DEMO 0.9" on the title screen, and `README_TESTERS.txt`,
 which `_tools/package_shipping.py` now copies next to every build.
 
+Pause backdrop (2026-11-14, `_tools/pause_backdrop.py`): `RootBorder` is now opaque (alpha 0.88 -> 1) because the
+raised terminal, a world-space widget, showed through it and overlapped the settings rows; the subtitle is the static
+"SUBSTRATE FACILITY" (it said SECTOR C in every sector). Not seen in a build yet.
+A locked airlock now says "AIRLOCK LOCKED - A ROW ON THIS SIDE IS UNLOGGED OR LOGGED WRONG": the old text ("log the
+fixtures on this side first") stranded a tester who had logged every row but passed a missing fixture.
+
 ## Title and Overtime (2026-10-29)
 
 The game opens on the terminal, in the dome, instead of straight into a shift (`ShowTitle` from `EventBeginPlay`,

@@ -110,6 +110,35 @@ it. `_tools/fixture_meshes.py`. Six Light sites were added on the route (`_tools
 C-02, C-05 and the three transit lights. PIE, 8 round-7 shifts: every shift hid one audited prop (C-03, C-04 or A-02,
 `bHidden` true) and 12 different anomaly kinds fired, including the new light sites.
 
+## Fixture props are solid; C-01 moved aside (2026-11-14)
+
+The "collision off" above never stuck: the instances read back `BlockAllDynamic`, so every prop is solid. Making them
+walk-through was tried and rejected in playtest (walking through a console reads as a bug), so they stay solid and
+`_tools/prop_lanes.py` checks that none cuts its walkway for a 42 cm capsule. Its first version took the wrong floor
+height at C-02 and passed a prop that blocked: C-02's vent (`SM_vent` at 1.5) stood across its 1.6 m catwalk and was
+the tester's "round block". The vent now stands along the east railing, leaning outward (yaw -90, x 3095; at yaw 90 its
+top overhung the lane at head height), leaving 1.1 m clear at every height, with its light on the walkway side
+(relative 0, -60, 27, intensity 15000). `prop_lanes.py` still misreads the deck height at C-02 (two-level floor), so
+that one was checked with direct traces along the catwalk at four heights. C-01's tank stood
+mid-way on the 1.6 m bridge extension (fences at x 1349 and 1507) and left 82 cm, less than the capsule's width: the
+"round block" of that playtest. It is now scale 0.13 at x 1478, against the east fence, leaving about 1 m.
+
+C-03's console was a black silhouette from the north, the side the route arrives from: every fixture's `CatchLight`
+sits at the actor origin, which for a floor-standing prop is inside the mesh. On `BP_Fixture_C_2` only, the light is now
+outside (relative -315, 60, 215: north of and above the console) at 30000. Set `RelativeLocation` in string form; the
+dict form kept only x. The other props still carry their light inside the mesh.
+
+## Helper geometry that showed (2026-11-14)
+
+Earlier sessions' safety blockers are engine cubes with `BasicShapeMaterial`. Most have their mesh component hidden;
+four did not. `Bridge_Safety_Barrier_East` (a 7.4 x 3.5 m white wall beside C-01's bridge) is now hidden and still
+blocks. `CanalDoorway_SafetyFloor`, `CanalBed_Safety_North` and `CanalBed_Safety_South` are real floors, so they stay
+visible and got `MI_concrete_01` instead of the plain white material.
+
+`_tools/pie_route_check.py` walks the shift loop in PIE without input (logs rows by property, drops the pawn into each
+airlock and the console trigger). 2026-11-14: both airlocks lock and open correctly in both directions, a close with
+dome rows unlogged is refused, and a clean close at round 8 enters Sector D.
+
 ## Audited anomaly guarantee and pick fix (2026-10-29)
 
 Only a fixture whose `FixtureState != 0` changes the audit; a playtest shift 7 came out all PASS because the roll

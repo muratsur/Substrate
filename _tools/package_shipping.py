@@ -75,9 +75,11 @@ with open(LOG_FILE, "w", encoding="utf-8") as f:
         f.flush()
         line_clean = line.strip()
         
-        if "warning:" in line_clean.lower() or "warning " in line_clean.lower():
+        if "Warning/Error Summary" in line_clean:   # UAT's section header, not a warning or an error
+            pass
+        elif "warning:" in line_clean.lower() or "warning " in line_clean.lower():
             warnings_list.append(line_clean)
-        if "error:" in line_clean.lower() or "error " in line_clean.lower() or "fatal" in line_clean.lower():
+        if "Warning/Error Summary" not in line_clean and ("error:" in line_clean.lower() or "error " in line_clean.lower() or "fatal" in line_clean.lower()):
             errors_list.append(line_clean)
             
         now = time.time()
