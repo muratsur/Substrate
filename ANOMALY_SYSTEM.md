@@ -139,6 +139,16 @@ visible and got `MI_concrete_01` instead of the plain white material.
 airlock and the console trigger). 2026-11-14: both airlocks lock and open correctly in both directions, a close with
 dome rows unlogged is refused, and a clean close at round 8 enters Sector D.
 
+## West canal exits (2026-11-14)
+
+The canal rescue has been off since the water-exploration change of 2026-10-23, and the west canal (x -2450..-1950,
+bed z 100, banks z 288, sealed at y 6355) had no way out: a tester fell in near C-03 and had to restart the shift.
+`_tools/canal_exit_stairs.py` places `CanalExit_Stairs_South` (y 7650) and `CanalExit_Stairs_North` (y 9300), kit
+stairs across the canal rising to the west bank, one each side of the stone crossing. PIE drop test: feet at 102 on the
+bed, 139 / 211 / 291 up the stairs, 291 on the bank. C-03's console stood 30 cm from the canal edge, so the only way
+past it was the wall side; it is now tight against the wall (x -2575), leaving 1.3 m on the canal side. The brick wall
+there has no collision and a 319-high footing behind it: do not place anything west of x -2600.
+
 ## Audited anomaly guarantee and pick fix (2026-10-29)
 
 Only a fixture whose `FixtureState != 0` changes the audit; a playtest shift 7 came out all PASS because the roll
